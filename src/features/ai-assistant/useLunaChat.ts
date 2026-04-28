@@ -266,9 +266,13 @@ function buildSessionTitle(text: string, attachments: ChatAttachment[]) {
 
 async function parseApiJsonOrThrow<T>(response: Response, fallbackError: string): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
+  const rawText = await response.text();
+
+  if (!rawText.trim()) {
+    throw new Error(fallbackError);
+  }
 
   if (!contentType.toLowerCase().includes("application/json")) {
-    const rawText = await response.text();
     if (rawText.trim().startsWith("<!DOCTYPE") || rawText.trim().startsWith("<html")) {
       throw new Error(fallbackError);
     }
@@ -276,12 +280,18 @@ async function parseApiJsonOrThrow<T>(response: Response, fallbackError: string)
     throw new Error(rawText || fallbackError);
   }
 
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error || fallbackError);
+  let payload: (T & { error?: string }) | null = null;
+  try {
+    payload = JSON.parse(rawText) as T & { error?: string };
+  } catch {
+    throw new Error(fallbackError);
   }
 
-  return payload;
+  if (!response.ok) {
+    throw new Error(payload?.error || fallbackError);
+  }
+
+  return payload as T;
 }
 
 function translateManualBookingReply(

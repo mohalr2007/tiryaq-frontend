@@ -77,13 +77,25 @@ const defaultOverview: AdminPortalOverview = {
 };
 
 async function parseJsonResponse<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => null)) as { error?: string } & T | null;
+  const rawText = await response.text();
+  let payload: ({ error?: string } & T) | null = null;
+  if (rawText) {
+    try {
+      payload = JSON.parse(rawText) as { error?: string } & T;
+    } catch {
+      throw new Error("Réponse API invalide.");
+    }
+  }
 
   if (!response.ok) {
     throw new Error(payload?.error ?? "Erreur API.");
   }
 
-  return (payload ?? {}) as T;
+  if (!payload) {
+    throw new Error("Réponse API vide ou invalide.");
+  }
+
+  return payload as T;
 }
 
 function initialsFromName(value: string | null | undefined) {
@@ -290,17 +302,21 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     const payload = await parseJsonResponse<AdminPortalOverview>(
       await fetch("/api/admin-page/overview", { cache: "no-store" })
     );
-    setOverview(payload);
+    setOverview({
+      ...defaultOverview,
+      ...payload,
+    });
   };
 
   const loadDoctors = async () => {
     const payload = await parseJsonResponse<{ doctors: AdminManagedDoctor[] }>(
       await fetch(`/api/admin-page/doctors?status=all`, { cache: "no-store" })
     );
-    setDoctors(payload.doctors);
+    const nextDoctors = Array.isArray(payload.doctors) ? payload.doctors : [];
+    setDoctors(nextDoctors);
     setDoctorNotes((current) => {
       const next = { ...current };
-      payload.doctors.forEach((doctor) => {
+      nextDoctors.forEach((doctor) => {
         if (typeof next[doctor.id] === "undefined") {
           next[doctor.id] = doctor.verificationNote ?? "";
         }
@@ -313,7 +329,7 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     const payload = await parseJsonResponse<{ admins: AdminUserPublic[] }>(
       await fetch("/api/admin-page/admins", { cache: "no-store" })
     );
-    setAdmins(payload.admins);
+    setAdmins(Array.isArray(payload.admins) ? payload.admins : []);
   };
 
   const loadReports = async () => {
@@ -321,8 +337,8 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
       reports: AdminCommunityReport[];
       blockedEmails: AdminBlockedEmail[];
     }>(await fetch("/api/admin-page/reports", { cache: "no-store" }));
-    setReports(payload.reports);
-    setBlockedEmails(payload.blockedEmails);
+    setReports(Array.isArray(payload.reports) ? payload.reports : []);
+    setBlockedEmails(Array.isArray(payload.blockedEmails) ? payload.blockedEmails : []);
   };
 
   const loadPortal = async ({ silent = false }: { silent?: boolean } = {}) => {

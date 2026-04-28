@@ -113,152 +113,154 @@ async function fetchAiEligibleDoctors() {
 export async function fetchRecommendedDoctors(
   input: FetchRecommendationsInput
 ): Promise<FetchRecommendationsOutput> {
-  const { targetSpecialty, location } = input;
-  await syncExpiredDoctorVacations();
+  try {
+    const { targetSpecialty, location } = input;
+    await syncExpiredDoctorVacations();
 
-  let doctors: DoctorRow[] = [];
+    let doctors: DoctorRow[] = [];
 
-  if (location) {
-    const { data, error: rpcError } = await supabase.rpc("get_nearby_doctors", {
-      user_lat: location.lat,
-      user_lon: location.lng,
-      radius_km: MAX_DISTANCE_KM,
-    });
+    if (location) {
+      const { data, error: rpcError } = await supabase.rpc("get_nearby_doctors", {
+        user_lat: location.lat,
+        user_lon: location.lng,
+        radius_km: MAX_DISTANCE_KM,
+      });
 
-    if (rpcError) {
-      throw new Error(rpcError.message);
+      if (rpcError) {
+        throw new Error(rpcError.message);
+      }
+
+      doctors = ((data ?? []) as DoctorRow[])
+        .map((doctor) => clearExpiredVacationFlag(doctor))
+        .filter((doctor) => {
+          const dist = computeDistanceKm(location, doctor);
+          return dist == null || dist <= MAX_DISTANCE_KM;
+        });
+
+      const bySpecialty = doctors.filter((doctor) => specialtyMatchesQuery(doctor.specialty, targetSpecialty));
+      doctors = bySpecialty;
+    } else {
+      doctors = (await fetchAiEligibleDoctors())
+        .map((doctor) => clearExpiredVacationFlag(doctor))
+        .filter((doctor) => specialtyMatchesQuery(doctor.specialty, targetSpecialty));
     }
 
-    doctors = ((data ?? []) as DoctorRow[])
-      .map((doctor) => clearExpiredVacationFlag(doctor))
-      .filter((doctor) => {
-      const dist = computeDistanceKm(location, doctor);
-      return dist == null || dist <= MAX_DISTANCE_KM;
-    });
+    const doctorIds = doctors.map((doctor) => doctor.id);
+    const ratingsByDoctorId = await fetchDoctorRatings(doctorIds);
 
-    const bySpecialty = doctors.filter((doctor) => specialtyMatchesQuery(doctor.specialty, targetSpecialty));
-    doctors = bySpecialty;
-  } else {
-    doctors = (await fetchAiEligibleDoctors())
-      .map((doctor) => clearExpiredVacationFlag(doctor))
-      .filter((doctor) => specialtyMatchesQuery(doctor.specialty, targetSpecialty));
+    const recommendations: RecommendedDoctor[] = doctors
+      .map((doctor) => {
+        const ratingEntry = ratingsByDoctorId[doctor.id];
+        return {
+          ...doctor,
+          rating: ratingEntry?.avg_rating ?? 0,
+          reviews: ratingEntry?.total_reviews ?? 0,
+          distanceKm: computeDistanceKm(location, doctor),
+        };
+      })
+      .sort((left, right) => {
+        const leftMatch = specialtyMatchesQuery(left.specialty, targetSpecialty);
+        const rightMatch = specialtyMatchesQuery(right.specialty, targetSpecialty);
+        if (leftMatch && !rightMatch) return -1;
+        if (!leftMatch && rightMatch) return 1;
+        if (left.distanceKm != null && right.distanceKm != null) {
+          return left.distanceKm - right.distanceKm;
+        }
+        return right.rating - left.rating;
+      });
+
+    return { recommendations: recommendations.filter((doctor) => Boolean(doctor.id)) };
+  } catch {
+    return { recommendations: [] };
   }
-
-  // === Ratings ===
-  const doctorIds = doctors.map((d) => d.id);
-  const ratingsByDoctorId = await fetchDoctorRatings(doctorIds);
-
-  const recommendations: RecommendedDoctor[] = doctors
-    .map((doctor) => {
-      const ratingEntry = ratingsByDoctorId[doctor.id];
-      return {
-        ...doctor,
-        rating: ratingEntry?.avg_rating ?? 0,
-        reviews: ratingEntry?.total_reviews ?? 0,
-        distanceKm: computeDistanceKm(location, doctor),
-      };
-    })
-    .sort((left, right) => {
-      // Primary: specialty match
-      const leftMatch = specialtyMatchesQuery(left.specialty, targetSpecialty);
-      const rightMatch = specialtyMatchesQuery(right.specialty, targetSpecialty);
-      if (leftMatch && !rightMatch) return -1;
-      if (!leftMatch && rightMatch) return 1;
-      // Secondary: distance
-      if (left.distanceKm != null && right.distanceKm != null) {
-        return left.distanceKm - right.distanceKm;
-      }
-      // Tertiary: rating
-      return right.rating - left.rating;
-    });
-
-  const validDoctors = recommendations.filter((d) => !!d.id);
-
-  return { recommendations: validDoctors };
 }
 
 export async function searchDoctorsByMessage(
   input: SearchDoctorsByMessageInput
 ): Promise<RecommendedDoctor[]> {
-  const {
-    message,
-    specialties = [],
-    location = null,
-    limit = 8,
-  } = input;
+  try {
+    const {
+      message,
+      specialties = [],
+      location = null,
+      limit = 8,
+    } = input;
 
-  const normalizedMessage = normalizeSearchText(message);
-  if (!normalizedMessage) {
+    const normalizedMessage = normalizeSearchText(message);
+    if (!normalizedMessage) {
+      return [];
+    }
+
+    await syncExpiredDoctorVacations();
+
+    const scoredDoctors = (await fetchAiEligibleDoctors())
+      .map((doctor) => clearExpiredVacationFlag(doctor))
+      .map((doctor) => {
+        const nameScore = getDoctorNameMatchScore(doctor.full_name, normalizedMessage);
+        const specialtyScore =
+          specialties.length === 0 || specialties.some((specialty) => specialtyMatchesQuery(doctor.specialty, specialty))
+            ? specialties.length === 0
+              ? 10
+              : 25
+            : 0;
+
+        return {
+          doctor,
+          nameScore,
+          specialtyScore,
+        };
+      })
+      .filter((entry) => entry.nameScore > 0 && (specialties.length === 0 || entry.specialtyScore > 0));
+
+    if (scoredDoctors.length === 0) {
+      return [];
+    }
+
+    const ratingsByDoctorId = await fetchDoctorRatings(scoredDoctors.map((entry) => entry.doctor.id));
+
+    return scoredDoctors
+      .map((entry) => {
+        const ratingEntry = ratingsByDoctorId[entry.doctor.id];
+        return {
+          ...entry,
+          recommendation: {
+            ...entry.doctor,
+            rating: ratingEntry?.avg_rating ?? 0,
+            reviews: ratingEntry?.total_reviews ?? 0,
+            distanceKm: computeDistanceKm(location, entry.doctor),
+          } satisfies RecommendedDoctor,
+        };
+      })
+      .sort((left, right) => {
+        if (left.nameScore !== right.nameScore) {
+          return right.nameScore - left.nameScore;
+        }
+
+        if (left.specialtyScore !== right.specialtyScore) {
+          return right.specialtyScore - left.specialtyScore;
+        }
+
+        if (left.recommendation.distanceKm != null && right.recommendation.distanceKm != null) {
+          return left.recommendation.distanceKm - right.recommendation.distanceKm;
+        }
+
+        if (left.recommendation.distanceKm != null) {
+          return -1;
+        }
+
+        if (right.recommendation.distanceKm != null) {
+          return 1;
+        }
+
+        if (left.recommendation.rating !== right.recommendation.rating) {
+          return right.recommendation.rating - left.recommendation.rating;
+        }
+
+        return right.recommendation.reviews - left.recommendation.reviews;
+      })
+      .slice(0, limit)
+      .map((entry) => entry.recommendation);
+  } catch {
     return [];
   }
-
-  await syncExpiredDoctorVacations();
-
-  const scoredDoctors = (await fetchAiEligibleDoctors())
-    .map((doctor) => clearExpiredVacationFlag(doctor))
-    .map((doctor) => {
-      const nameScore = getDoctorNameMatchScore(doctor.full_name, normalizedMessage);
-      const specialtyScore =
-        specialties.length === 0 || specialties.some((specialty) => specialtyMatchesQuery(doctor.specialty, specialty))
-          ? specialties.length === 0
-            ? 10
-            : 25
-          : 0;
-
-      return {
-        doctor,
-        nameScore,
-        specialtyScore,
-      };
-    })
-    .filter((entry) => entry.nameScore > 0 && (specialties.length === 0 || entry.specialtyScore > 0));
-
-  if (scoredDoctors.length === 0) {
-    return [];
-  }
-
-  const ratingsByDoctorId = await fetchDoctorRatings(scoredDoctors.map((entry) => entry.doctor.id));
-
-  return scoredDoctors
-    .map((entry) => {
-      const ratingEntry = ratingsByDoctorId[entry.doctor.id];
-      return {
-        ...entry,
-        recommendation: {
-          ...entry.doctor,
-          rating: ratingEntry?.avg_rating ?? 0,
-          reviews: ratingEntry?.total_reviews ?? 0,
-          distanceKm: computeDistanceKm(location, entry.doctor),
-        } satisfies RecommendedDoctor,
-      };
-    })
-    .sort((left, right) => {
-      if (left.nameScore !== right.nameScore) {
-        return right.nameScore - left.nameScore;
-      }
-
-      if (left.specialtyScore !== right.specialtyScore) {
-        return right.specialtyScore - left.specialtyScore;
-      }
-
-      if (left.recommendation.distanceKm != null && right.recommendation.distanceKm != null) {
-        return left.recommendation.distanceKm - right.recommendation.distanceKm;
-      }
-
-      if (left.recommendation.distanceKm != null) {
-        return -1;
-      }
-
-      if (right.recommendation.distanceKm != null) {
-        return 1;
-      }
-
-      if (left.recommendation.rating !== right.recommendation.rating) {
-        return right.recommendation.rating - left.recommendation.rating;
-      }
-
-      return right.recommendation.reviews - left.recommendation.reviews;
-    })
-    .slice(0, limit)
-    .map((entry) => entry.recommendation);
 }
