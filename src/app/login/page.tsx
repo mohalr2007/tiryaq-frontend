@@ -134,9 +134,9 @@ export default function Login() {
 
         // Redirect based on account type
         if (profile?.account_type === 'doctor') {
-          router.replace('/dashboardoctlarabi');
+          router.replace('/doctor-dashboard');
         } else {
-          router.replace('/dashboardpatientlarabi');
+          router.replace('/patient-dashboard');
         }
       }
     } catch {

@@ -30,11 +30,11 @@ export default function AiAssistantPage() {
       }
 
       if (profile?.account_type === "doctor") {
-        router.replace("/dashboardoctlarabi?tab=ai-assistant");
+        router.replace("/doctor-dashboard?tab=ai-assistant");
         return;
       }
 
-      router.replace("/dashboardpatientlarabi?tab=ai-assistant");
+      router.replace("/patient-dashboard?tab=ai-assistant");
     };
 
     void routeUser();

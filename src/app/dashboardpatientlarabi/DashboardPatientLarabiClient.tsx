@@ -1027,7 +1027,7 @@ export default function PatientDashboard() {
 
         if (userProfile.account_type === "doctor") {
           shouldKeepLoadingForRedirect = true;
-          router.replace("/dashboardoctlarabi");
+          router.replace("/doctor-dashboard");
           return;
         }
 
@@ -2809,7 +2809,7 @@ export default function PatientDashboard() {
                 setActiveTab("ai-assistant");
                 setIsMobileNavOpen(false);
               }}
-              className={`${navButtonClasses(activeTab === "ai-assistant")} hidden md:flex`}
+              className={navButtonClasses(activeTab === "ai-assistant")}
             >
               <span className={navIconClasses(activeTab === "ai-assistant")}>
                 <img
@@ -4459,7 +4459,7 @@ export default function PatientDashboard() {
                         key={article.id}
                         className="bg-white/80 dark:bg-slate-900/50 backdrop-blur-md p-6 lg:p-8 rounded-3xl border border-slate-100/50 dark:border-slate-800/50 shadow-xl shadow-blue-900/5 hover:shadow-blue-900/10 transition-all duration-300"
                       >
-                        <div className="flex items-center gap-3 mb-4">
+                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                           <button
                             type="button"
                             onClick={() =>
@@ -4549,7 +4549,7 @@ export default function PatientDashboard() {
                         </p>
                         {article.images.length > 0 ? (
                           <div
-                            className={`mt-4 grid gap-2 ${article.images.length === 1 ? "grid-cols-1" : article.images.length === 2 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"}`}
+                            className={`mt-4 grid gap-2 ${article.images.length === 1 ? "grid-cols-1" : article.images.length === 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"}`}
                           >
                             {article.images.slice(0, 6).map((image, index) => (
                               <img
@@ -4569,7 +4569,7 @@ export default function PatientDashboard() {
                         ) : null}
 
                         <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-                          <div className="flex items-center gap-3 text-sm">
+                          <div className="flex flex-wrap items-center gap-3 text-sm">
                             <button
                               onClick={() => void toggleLikePost(article.id)}
                               className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 font-medium shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
@@ -4665,7 +4665,7 @@ export default function PatientDashboard() {
                             )}
                           </div>
 
-                          <div className="mt-4 flex items-center gap-2">
+                          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
                             <input
                               type="text"
                               value={commentDraftsByPostId[article.id] ?? ""}
@@ -4687,7 +4687,7 @@ export default function PatientDashboard() {
                                 void submitCommunityComment(article.id)
                               }
                               disabled={commentSubmittingPostId === article.id}
-                              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto"
                             >
                               <Send size={14} />
                               {commentSubmittingPostId === article.id
@@ -4802,7 +4802,7 @@ export default function PatientDashboard() {
                             void handleGeolocate();
                           }}
                           disabled={isResolvingLocation}
-                          className="inline-flex min-w-[190px] items-center justify-center gap-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-4 py-3 text-sm font-semibold text-blue-700 dark:text-blue-200 transition hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:cursor-not-allowed disabled:opacity-70"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-4 py-3 text-sm font-semibold text-blue-700 dark:text-blue-200 transition hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:cursor-not-allowed disabled:opacity-70 sm:min-w-[190px] sm:w-auto"
                         >
                           <Crosshair
                             size={16}

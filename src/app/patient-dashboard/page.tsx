@@ -1,11 +1,11 @@
 import { Suspense } from "react";
-import DashboardOctLarabiClient from "../dashboardoctlarabi/DashboardOctLarabiClient";
-import { requireDoctorDashboardAccess } from "@/utils/serverAccessGuards";
+import DashboardPatientLarabiClient from "../dashboardpatientlarabi/DashboardPatientLarabiClient";
+import { requirePatientDashboardAccess } from "@/utils/serverAccessGuards";
 
 export const dynamic = "force-dynamic";
 
-export default async function DoctorDashboardPage() {
-  await requireDoctorDashboardAccess();
+export default async function PatientDashboardPage() {
+  await requirePatientDashboardAccess();
 
   return (
     <Suspense
@@ -15,7 +15,7 @@ export default async function DoctorDashboardPage() {
         </div>
       }
     >
-      <DashboardOctLarabiClient />
+      <DashboardPatientLarabiClient />
     </Suspense>
   );
 }

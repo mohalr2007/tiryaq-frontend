@@ -8,6 +8,7 @@ import { detectMessageLanguage, type AssistantLanguage } from "./language";
 import { fetchRecommendedDoctors, searchDoctorsByMessage } from "./recommendations";
 import { extractExplicitSpecialties } from "./specialty";
 import { useChatHistory } from "./useChatHistory";
+import { fetchDirectBackend, hasDirectBackendOrigin } from "@/utils/directBackend";
 import type {
   AssistantScope,
   ChatAttachment,
@@ -50,6 +51,12 @@ type AssistantBootstrapContext = {
 
 let assistantBootstrapCache: AssistantBootstrapContext | undefined;
 let assistantBootstrapPromise: Promise<AssistantBootstrapContext> | null = null;
+
+const MAX_IMAGE_LONGEST_SIDE = 1600;
+const MAX_DIRECT_PDF_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const MAX_PROXY_SAFE_PDF_ATTACHMENT_BYTES = 2 * 1024 * 1024;
+const MAX_DIRECT_TOTAL_ATTACHMENT_BYTES = 11 * 1024 * 1024;
+const MAX_PROXY_SAFE_TOTAL_ATTACHMENT_BYTES = Math.round(2.8 * 1024 * 1024);
 
 function normalizeSearchText(value: string) {
   return value
@@ -197,6 +204,49 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+function estimateDataUrlBytes(dataUrl: string) {
+  const [, base64 = ""] = dataUrl.split(",", 2);
+  return Math.floor((base64.length * 3) / 4);
+}
+
+function loadImageFromObjectUrl(objectUrl: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Impossible de lire l'image sélectionnée."));
+    image.src = objectUrl;
+  });
+}
+
+async function readOptimizedImageAsDataUrl(file: File) {
+  if (!file.type.startsWith("image/") || file.size <= 900 * 1024) {
+    return readFileAsDataUrl(file);
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await loadImageFromObjectUrl(objectUrl);
+    const longestSide = Math.max(image.width, image.height);
+    const scale = longestSide > MAX_IMAGE_LONGEST_SIDE ? MAX_IMAGE_LONGEST_SIDE / longestSide : 1;
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return readFileAsDataUrl(file);
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.82);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 function buildSessionTitle(text: string, attachments: ChatAttachment[]) {
   const trimmed = text.trim();
   if (trimmed) {
@@ -318,6 +368,13 @@ async function getAssistantBootstrapContext(): Promise<AssistantBootstrapContext
 
 export function useLunaChat(): UseLunaChatReturn {
   const { language } = useI18n();
+  const directBackendAvailable = hasDirectBackendOrigin();
+  const maxPdfAttachmentBytes = directBackendAvailable
+    ? MAX_DIRECT_PDF_ATTACHMENT_BYTES
+    : MAX_PROXY_SAFE_PDF_ATTACHMENT_BYTES;
+  const maxTotalAttachmentBytes = directBackendAvailable
+    ? MAX_DIRECT_TOTAL_ATTACHMENT_BYTES
+    : MAX_PROXY_SAFE_TOTAL_ATTACHMENT_BYTES;
   const [patientId, setPatientId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<AssistantScope | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
@@ -664,13 +721,53 @@ export function useLunaChat(): UseLunaChatReturn {
         attachmentPayload =
           normalizedAttachments.length > 0
             ? await Promise.all(
-                normalizedAttachments.map(async (attachment) => ({
-                  fileName: attachment.file.name,
-                  mimeType: attachment.file.type,
-                  dataUrl: await readFileAsDataUrl(attachment.file),
-                }))
+                normalizedAttachments.map(async (attachment) => {
+                  if (attachment.kind === "pdf" && attachment.file.size > maxPdfAttachmentBytes) {
+                    throw new Error(
+                      language === "ar"
+                        ? `ملف PDF كبير جداً. الحد الآمن الحالي هو ${directBackendAvailable ? "5" : "2"} MB لكل ملف.`
+                        : language === "en"
+                          ? `This PDF is too large. The current safe limit is ${directBackendAvailable ? "5" : "2"} MB per file.`
+                          : `Ce PDF est trop volumineux. La limite sûre actuelle est de ${directBackendAvailable ? "5" : "2"} MB par fichier.`,
+                    );
+                  }
+
+                  const dataUrl =
+                    attachment.kind === "image"
+                      ? await readOptimizedImageAsDataUrl(attachment.file)
+                      : await readFileAsDataUrl(attachment.file);
+
+                  return {
+                    fileName: attachment.file.name,
+                    mimeType: attachment.file.type,
+                    dataUrl,
+                  };
+                })
               )
             : null;
+
+        if (attachmentPayload) {
+          const totalAttachmentBytes = attachmentPayload.reduce(
+            (sum, attachment) => sum + estimateDataUrlBytes(attachment.dataUrl),
+            0,
+          );
+
+          if (totalAttachmentBytes > maxTotalAttachmentBytes) {
+            throw new Error(
+              language === "ar"
+                ? directBackendAvailable
+                  ? "حجم المرفقات بعد التحضير ما زال كبيراً جداً. قلّل عدد الصور أو استخدم ملفات أصغر."
+                  : "حجم المرفقات بعد التحضير يتجاوز الحد المسموح به في هذا النشر. قلّل عدد الصور أو استخدم ملفات أصغر."
+                : language === "en"
+                  ? directBackendAvailable
+                    ? "The prepared attachments are still too large. Reduce the number of files or use smaller files."
+                    : "The prepared attachments exceed the limit allowed by this deployment. Reduce the number of files or use smaller files."
+                  : directBackendAvailable
+                    ? "Les pièces jointes préparées restent trop volumineuses. Réduisez le nombre de fichiers ou utilisez des fichiers plus légers."
+                    : "Les pièces jointes préparées dépassent la limite acceptée par ce déploiement. Réduisez le nombre de fichiers ou utilisez des fichiers plus légers.",
+            );
+          }
+        }
 
         const messageAttachments: ChatAttachment[] = normalizedAttachments.map((attachment, index) => ({
           name: attachment.file.name,
@@ -703,16 +800,22 @@ export function useLunaChat(): UseLunaChatReturn {
             content: message.content,
           }));
 
-          const response = await fetch("/api/ai-vision", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userRole: assistantScope,
-              userPrompt: trimmedText,
-              attachments: attachmentPayload,
-              history: historyForVisionApi,
-            }),
-          });
+          const response = await fetchDirectBackend(
+            "/api/ai-vision",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userRole: assistantScope,
+                userPrompt: trimmedText,
+                attachments: attachmentPayload,
+                history: historyForVisionApi,
+              }),
+            },
+            {
+              fallbackPath: "/api/ai-vision",
+            },
+          );
 
           const data = await parseApiJsonOrThrow<{ reply?: string; error?: string }>(
             response,
@@ -770,18 +873,24 @@ export function useLunaChat(): UseLunaChatReturn {
           }
         }
 
-        const response = await fetch("/api/ai-chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: historyForApi,
-            doctorsSummary: assistantScope === "patient" && promptDoctors.length > 0
-              ? buildDoctorsSummary(promptDoctors)
-              : undefined,
-            locationBlocked,
-            userRole: assistantScope,
-          }),
-        });
+        const response = await fetchDirectBackend(
+          "/api/ai-chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: historyForApi,
+              doctorsSummary: assistantScope === "patient" && promptDoctors.length > 0
+                ? buildDoctorsSummary(promptDoctors)
+                : undefined,
+              locationBlocked,
+              userRole: assistantScope,
+            }),
+          },
+          {
+            fallbackPath: "/api/ai-chat",
+          },
+        );
 
         const data = await parseApiJsonOrThrow<{
           reply?: string;
@@ -845,11 +954,14 @@ export function useLunaChat(): UseLunaChatReturn {
       isThinking,
       fetchDoctorsForSpecialties,
       loadDoctors,
-        language,
-        locationBlocked,
-        messages,
-        resolveBrowserLocation,
-      ]
+      language,
+      locationBlocked,
+      messages,
+      resolveBrowserLocation,
+      directBackendAvailable,
+      maxPdfAttachmentBytes,
+      maxTotalAttachmentBytes,
+    ]
     );
 
   const resetChat = useCallback(() => {

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { getStableAuthUser, supabase } from "@/utils/supabase/client";
 import { normalizeDoctorVerificationStatus } from "@/utils/governance";
+import { fetchDirectBackend } from "@/utils/directBackend";
 
 type VerificationStatePayload = {
   profile: {
@@ -119,6 +120,7 @@ export default function DoctorVerificationPage() {
   const loadState = async () => {
     setLoading(true);
     setErrorMessage(null);
+    let authenticatedUserId: string | null = null;
 
     try {
       const { user, error } = await getStableAuthUser();
@@ -126,10 +128,18 @@ export default function DoctorVerificationPage() {
         router.replace("/login");
         return;
       }
+      authenticatedUserId = user.id;
 
-      const response = await fetch("/api/doctor-verification/status", {
-        cache: "no-store",
-      });
+      const response = await fetchDirectBackend(
+        "/api/doctor-verification/status",
+        {
+          cache: "no-store",
+        },
+        {
+          auth: true,
+          fallbackPath: "/api/doctor-verification/status",
+        },
+      );
       const payload = (await response.json().catch(() => null)) as
         | (VerificationStatePayload & { error?: string })
         | null;
@@ -139,7 +149,7 @@ export default function DoctorVerificationPage() {
       }
 
       if (payload.profile.account_type !== "doctor") {
-        router.replace("/dashboardpatientlarabi");
+        router.replace("/patient-dashboard");
         return;
       }
 
@@ -155,6 +165,36 @@ export default function DoctorVerificationPage() {
       setState(payload);
       setRequestMessage(payload.verification?.requestMessage ?? "");
     } catch (error) {
+      const { data: fallbackProfile } =
+        authenticatedUserId == null
+          ? { data: null as VerificationStatePayload["profile"] | null }
+          : await supabase
+              .from("profiles")
+              .select(
+                "id, account_type, full_name, specialty, doctor_verification_status, is_doctor_verified, doctor_verification_note, doctor_verification_requested_at, moderation_status, moderation_reason",
+              )
+              .eq("id", authenticatedUserId)
+              .single();
+
+      if (fallbackProfile?.account_type === "doctor") {
+        setState({
+          profile: {
+            id: fallbackProfile.id,
+            account_type: fallbackProfile.account_type,
+            full_name: fallbackProfile.full_name ?? null,
+            specialty: fallbackProfile.specialty ?? null,
+            doctor_verification_status: fallbackProfile.doctor_verification_status ?? null,
+            is_doctor_verified: fallbackProfile.is_doctor_verified ?? null,
+            doctor_verification_note: fallbackProfile.doctor_verification_note ?? null,
+            doctor_verification_requested_at: fallbackProfile.doctor_verification_requested_at ?? null,
+            moderation_status: fallbackProfile.moderation_status ?? null,
+            moderation_reason: fallbackProfile.moderation_reason ?? null,
+          },
+          verification: null,
+          files: [],
+        });
+      }
+
       setErrorMessage(
         error instanceof Error ? error.message : "Impossible de charger la page de vérification."
       );
@@ -193,10 +233,17 @@ export default function DoctorVerificationPage() {
       medicalCertificates.forEach((file) => formData.append("medicalCertificates", file));
       otherDocuments.forEach((file) => formData.append("otherDocuments", file));
 
-      const response = await fetch("/api/doctor-verification/request", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetchDirectBackend(
+        "/api/doctor-verification/request",
+        {
+          method: "POST",
+          body: formData,
+        },
+        {
+          auth: true,
+          fallbackPath: "/api/doctor-verification/request",
+        },
+      );
 
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) {
@@ -266,7 +313,7 @@ export default function DoctorVerificationPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               {verificationStatus === "approved" ? (
                 <Link
-                  href="/dashboardoctlarabi"
+                  href="/doctor-dashboard"
                   className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl bg-blue-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-blue-500 hover:shadow-blue-500/25 focus:ring-4 focus:ring-blue-500/20 active:scale-95"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] transition-transform duration-700 group-hover:translate-x-[100%]" />
@@ -275,7 +322,7 @@ export default function DoctorVerificationPage() {
                 </Link>
               ) : (
                 <Link
-                  href="/dashboardoctlarabi"
+                  href="/doctor-dashboard"
                   className="group inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200/60 bg-white/50 px-6 py-3.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition-all hover:border-slate-300 hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 active:scale-95"
                 >
                   <Clock className="h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />

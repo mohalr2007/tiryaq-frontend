@@ -301,7 +301,7 @@ function SignupForm() {
         if (accountType === 'doctor') {
           router.push('/doctor-verification');
         } else {
-          router.push('/dashboardpatientlarabi');
+          router.push('/patient-dashboard');
         }
       }, 1500);
 

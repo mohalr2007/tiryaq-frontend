@@ -1,21 +1,33 @@
-import { Suspense } from "react";
-import DashboardOctLarabiClient from "./DashboardOctLarabiClient";
-import { requireDoctorDashboardAccess } from "@/utils/serverAccessGuards";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+type LegacyDashboardPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default async function DashboardOctLarabiPage() {
-  await requireDoctorDashboardAccess();
+function toQueryString(searchParams: Record<string, string | string[] | undefined>) {
+  const params = new URLSearchParams();
 
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-        </div>
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === "string" && value.length > 0) {
+      params.set(key, value);
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (entry) {
+          params.append(key, entry);
+        }
       }
-    >
-      <DashboardOctLarabiClient />
-    </Suspense>
-  );
+    }
+  }
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export default async function LegacyDoctorDashboardPage({
+  searchParams,
+}: LegacyDashboardPageProps) {
+  redirect(`/doctor-dashboard${toQueryString(await searchParams)}`);
 }

@@ -2116,7 +2116,7 @@ export default function DoctorDashboard() {
         const effectiveOnVacation = Boolean(userProfile?.is_on_vacation && !hasDoctorVacationExpired(userProfile));
         if (userProfile?.account_type === "patient") {
           shouldKeepLoadingForRedirect = true;
-          router.replace("/dashboardpatientlarabi");
+          router.replace("/patient-dashboard");
           return;
         }
         setProfile(userProfile);
@@ -3525,7 +3525,7 @@ export default function DoctorDashboard() {
             <span className={navIconClasses(activeTab === "publications")}><Upload size={18} /></span>
             <span>{t("dashboard.doctor.publications")}</span>
           </button>
-          <button onClick={() => { setActiveTab("ai-assistant"); setIsMobileNavOpen(false); }} className={`${navButtonClasses(activeTab === "ai-assistant")} hidden md:flex`}>
+          <button onClick={() => { setActiveTab("ai-assistant"); setIsMobileNavOpen(false); }} className={navButtonClasses(activeTab === "ai-assistant")}>
             <span className={navIconClasses(activeTab === "ai-assistant")}>
               <img src="/images/mofid.jpg" alt="MOFID" className="h-[18px] w-[18px] rounded-md object-cover" />
             </span>
@@ -4157,7 +4157,7 @@ export default function DoctorDashboard() {
               {/* Recent Activity / Next Appointments */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t("dashboard.doctor.appointments")}</h2>
                     <button onClick={() => setActiveTab("appointments")} className="text-blue-600 dark:text-blue-400 text-sm font-bold hover:underline flex items-center gap-1">
                       {t("ai.assistant.viewDetails")} <ChevronRight size={14} />
@@ -4250,7 +4250,7 @@ export default function DoctorDashboard() {
                     <p className="text-slate-500 dark:text-slate-400">{t("dashboard.doctor.appt.subtitle")}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-900">
+                    <div className="flex w-full flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-slate-700 dark:bg-slate-900 sm:inline-flex sm:w-auto sm:flex-row sm:items-center sm:rounded-full sm:px-2 sm:py-2">
                       <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                         {tr("Tri", "Sort", "الترتيب")}
                       </span>
@@ -4289,7 +4289,121 @@ export default function DoctorDashboard() {
                      <p>{t("dashboard.doctor.appt.empty")}</p>
                    </div>
                  ) : (
-                   <div className="overflow-x-auto">
+                   <>
+                   <div className="divide-y divide-slate-100 dark:divide-slate-800 md:hidden">
+                     {sortedAppointmentsWithPinnedVisit.map((appt) => {
+                       const linkedDossier = appt.patient_id
+                         ? (dossiers.find((dossier) => dossier.patient_id === appt.patient_id) ?? null)
+                         : null;
+                       const isPinnedActiveVisit = activeVisitAppointment?.id === appt.id;
+
+                       return (
+                         <div
+                           key={`mobile-${appt.id}`}
+                           onClick={() => {
+                             void openAppointmentWorkspace(appt);
+                           }}
+                           className={`space-y-4 p-4 transition hover:bg-slate-50/50 dark:hover:bg-slate-800/60 ${
+                             isPinnedActiveVisit ? "bg-emerald-50/70 dark:bg-emerald-950/20" : ""
+                           }`}
+                         >
+                           <div className="flex items-start justify-between gap-3">
+                             <div className="min-w-0">
+                               <p className="font-bold text-slate-900 dark:text-slate-100">{appt.patient?.full_name}</p>
+                               <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
+                                 {getAppointmentDisplayLabel(appt)}
+                               </p>
+                               {formatPatientRegistrationNumber(appt.patient?.patient_registration_number) ? (
+                                 <p className="mt-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300 font-mono tracking-[0.18em]">
+                                   ID {formatPatientRegistrationNumber(appt.patient?.patient_registration_number)}
+                                 </p>
+                               ) : null}
+                             </div>
+                             <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider border ${
+                               appt.status === 'confirmed' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' :
+                               appt.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800' :
+                               appt.status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' :
+                               'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                             }`}>
+                               {(() => {
+                                 const statusKey = `dashboard.doctor.appt.status.${appt.status}` as const;
+                                 return t(statusKey) || appt.status;
+                               })()}
+                             </span>
+                           </div>
+
+                           <div className="flex flex-wrap items-center gap-2">
+                             <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">
+                               {getBookingModeLabel(appt.booking_selection_mode)}
+                             </span>
+                             {appt.appointment_source === "doctor_follow_up" ? (
+                               <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-300">
+                                 {tr("Contrôle", "Follow-up", "متابعة")}
+                               </span>
+                             ) : null}
+                             {appt.follow_up_time_pending ? (
+                               <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
+                                 {tr("Heure à fixer", "Time pending", "الساعة غير محددة")}
+                               </span>
+                             ) : null}
+                             {isPinnedActiveVisit ? (
+                               <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                 {tr("Épinglé maintenant", "Pinned now", "مثبت الآن")}
+                               </span>
+                             ) : null}
+                           </div>
+
+                           <div className="flex flex-wrap gap-2">
+                             {appt.status === 'pending' && (
+                               <>
+                                 {appt.booking_selection_mode === "patient_datetime" ? (
+                                   <button onClick={(event) => { event.stopPropagation(); void updateAppointmentStatus(appt.id, 'confirmed'); }} className="rounded-xl bg-green-50 dark:bg-green-900/50 px-3 py-2 text-sm font-semibold text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/70 transition">
+                                     {tr("Confirmer", "Confirm", "تأكيد")}
+                                   </button>
+                                 ) : (
+                                   <button
+                                     onClick={(event) => { event.stopPropagation(); openScheduleModal(appt); }}
+                                     className="rounded-xl bg-blue-50 dark:bg-blue-900/50 px-3 py-2 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/70 transition"
+                                   >
+                                     {tr("Planifier", "Schedule", "جدولة")}
+                                   </button>
+                                 )}
+                                 <button onClick={(event) => { event.stopPropagation(); void updateAppointmentStatus(appt.id, 'cancelled'); }} className="rounded-xl bg-red-50 dark:bg-red-900/50 px-3 py-2 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/70 transition">
+                                   {tr("Annuler", "Cancel", "إلغاء")}
+                                 </button>
+                               </>
+                             )}
+                             {appt.status === 'confirmed' && appt.follow_up_time_pending ? (
+                               <button onClick={(event) => { event.stopPropagation(); openScheduleModal(appt); }} className="rounded-xl bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">
+                                 {tr("Fixer l'heure", "Set the time", "تحديد الساعة")}
+                               </button>
+                             ) : null}
+                             {appt.status === 'confirmed' && !appt.follow_up_time_pending ? (
+                               <button onClick={(event) => { event.stopPropagation(); void updateAppointmentStatus(appt.id, 'completed'); }} className="rounded-xl bg-blue-50 dark:bg-blue-900/50 px-3 py-2 text-sm font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/70 transition">
+                                 {tr("Marquer terminé", "Mark completed", "تحديده كمكتمل")}
+                               </button>
+                             ) : null}
+                             <button
+                               onClick={(event) => {
+                                 event.stopPropagation();
+                                 void openAppointmentWorkspace(appt);
+                               }}
+                               className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                                 linkedDossier
+                                   ? "bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+                                   : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+                               }`}
+                             >
+                               {linkedDossier
+                                 ? tr("Voir le dossier", "Open record", "فتح الملف")
+                                 : tr("Créer un dossier", "Create record", "إنشاء ملف")}
+                             </button>
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                   <div className="hidden overflow-x-auto md:block">
                    <table className="min-w-[760px] w-full border-collapse text-left">
                      <thead>
                         <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-sm uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
@@ -4417,6 +4531,7 @@ export default function DoctorDashboard() {
                      </tbody>
                    </table>
                    </div>
+                   </>
                  )}
                </div>
             </motion.div>
@@ -4451,7 +4566,7 @@ export default function DoctorDashboard() {
 
                       return (
                      <article key={'all_'+article.id} className="bg-white/80 dark:bg-slate-900/50 backdrop-blur-md p-6 lg:p-8 rounded-3xl border border-slate-100/50 dark:border-slate-800/50 shadow-xl shadow-blue-900/5 hover:shadow-blue-900/10 transition-all duration-300">
-                       <div className="flex items-center gap-3 mb-4">
+                       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                          <button
                            type="button"
                            onClick={() => void openCommunityDoctorDetails(article.doctor_id)}
@@ -4483,7 +4598,7 @@ export default function DoctorDashboard() {
                        <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{article.content}</p>
                        
                        {article.images?.length > 0 && (
-                         <div className={`mt-4 grid gap-2 ${article.images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                         <div className={`mt-4 grid gap-2 ${article.images.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
                            {article.images.slice(0, 4).map((img) => (
                              <img key={img.id} src={img.image_url} alt="pic" className="w-full h-48 object-cover rounded-xl" />
                            ))}
@@ -4491,8 +4606,8 @@ export default function DoctorDashboard() {
                        )}
 
                        {/* Stats & Actions */}
-                        <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-sm">
-                         <div className="flex items-center gap-3">
+                        <div className="mt-5 border-t border-slate-100 pt-4 text-sm dark:border-slate-800">
+                         <div className="flex flex-wrap items-center gap-3">
                            <button onClick={() => toggleLikePost(article.id)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${likes.likedByMe ? "border-rose-300 bg-rose-50 text-rose-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
                              <Heart size={16} className={likes.likedByMe ? "fill-current" : ""} /> {likes.count}
                            </button>
@@ -4500,7 +4615,7 @@ export default function DoctorDashboard() {
                              <MessageCircle size={16} /> {commentsList.length}
                            </button>
                          </div>
-                         <div className="flex items-center gap-3">
+                         <div className="mt-3 flex flex-wrap items-center gap-3 sm:mt-0">
                            <button onClick={() => toggleSavePost(article.id)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${saves.savedByMe ? "border-blue-300 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
                              <Bookmark size={16} className={saves.savedByMe ? "fill-current" : ""} /> Sauvegarder
                            </button>
@@ -4525,19 +4640,19 @@ export default function DoctorDashboard() {
                           ))}
                           
                           {/* Write Comment */}
-                          <div className="relative mt-2">
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
                              <input
                                type="text"
                                placeholder="Ajouter un commentaire professionnel..."
                                value={draft}
                                onChange={(e) => setCommentDraftsByPostId(p => ({ ...p, [article.id]: e.target.value }))}
                                onKeyDown={(e) => e.key === "Enter" && submitComment(article.id)}
-                               className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-full pl-5 pr-12 py-3 text-sm focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-200"
+                               className="w-full rounded-2xl border-none bg-slate-50 px-5 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200 sm:rounded-full"
                              />
                              <button
                                onClick={() => submitComment(article.id)}
                                disabled={!draft || isCommenting}
-                               className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 transition"
+                               className="inline-flex items-center justify-center self-end rounded-full bg-blue-600 p-2 text-white transition hover:bg-blue-700 disabled:opacity-50 sm:self-auto"
                              >
                                 <Send size={14} />
                              </button>
@@ -4737,7 +4852,7 @@ export default function DoctorDashboard() {
                               ))}
                             </div>
                           )}
-                          <div className="relative mt-2">
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
                             <input
                               ref={(element) => {
                                 commentInputRefs.current[art.id] = element;
@@ -4747,13 +4862,13 @@ export default function DoctorDashboard() {
                               value={commentDraftsByPostId[art.id] ?? ""}
                               onChange={(e) => setCommentDraftsByPostId((prev) => ({ ...prev, [art.id]: e.target.value }))}
                               onKeyDown={(e) => e.key === "Enter" && submitComment(art.id)}
-                              className="w-full rounded-full border border-slate-200 bg-white pl-5 pr-12 py-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                              className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 sm:rounded-full"
                             />
                             <button
                               type="button"
                               onClick={() => submitComment(art.id)}
                               disabled={!commentDraftsByPostId[art.id]?.trim() || commentSubmittingPostId === art.id}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-blue-600 p-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
+                              className="inline-flex items-center justify-center self-end rounded-full bg-blue-600 p-2 text-white transition hover:bg-blue-700 disabled:opacity-50 sm:self-auto"
                             >
                               <Send size={14} />
                             </button>
@@ -5027,7 +5142,7 @@ export default function DoctorDashboard() {
                             {tr("Le dossier sera lié automatiquement à ce rendez-vous et à l'historique futur du patient.", "This record will be linked automatically to this appointment and the patient's future history.", "سيتم ربط هذا الملف تلقائياً بهذا الموعد وبسجل المريض المستقبلي.")}
                           </div>
                         ) : null}
-                        <div className="col-span-2 grid grid-cols-2 gap-4">
+                        <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Prénom *</label>
                             <input value={newDossierForm.first_name} onChange={e => setNewDossierForm(f => ({ ...f, first_name: e.target.value }))} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder="Prénom" /></div>
                           <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Nom *</label>
@@ -5054,7 +5169,7 @@ export default function DoctorDashboard() {
                         <div className="col-span-2"><label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Remarques générales</label>
                           <textarea value={newDossierForm.general_remarks} onChange={e => setNewDossierForm(f => ({ ...f, general_remarks: e.target.value }))} rows={3} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Notes générales sur ce patient..." /></div>
                       </div>
-                      <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex gap-3 justify-end">
+                      <div className="flex flex-col-reverse justify-end gap-3 border-t border-slate-100 p-6 dark:border-slate-800 sm:flex-row">
                         <button onClick={closeNewDossierModal} className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">{tr("Annuler", "Cancel", "إلغاء")}</button>
                         <button disabled={dossierLoading} onClick={() => void handleCreateDossier()} className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-lg shadow-blue-200 dark:shadow-none disabled:opacity-60">
                           {dossierLoading
@@ -5079,7 +5194,7 @@ export default function DoctorDashboard() {
                         <button onClick={() => setShowNewVisitModal(false)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"><X size={20} /></button>
                       </div>
                       <div className="p-6 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Date *</label>
                             <input type="date" value={newVisitForm.visit_date} onChange={e => setNewVisitForm(f => ({ ...f, visit_date: e.target.value }))} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500" /></div>
                           <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Heure</label>
@@ -5832,7 +5947,7 @@ export default function DoctorDashboard() {
                              void handleUseCurrentLocation();
                            }}
                            disabled={isResolvingLocation}
-                           className="inline-flex min-w-[190px] items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/40"
+                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-900/40 sm:min-w-[190px] sm:w-auto"
                          >
                            <Crosshair size={16} className={isResolvingLocation ? "animate-pulse" : ""} />
                            {isResolvingLocation
@@ -5854,7 +5969,7 @@ export default function DoctorDashboard() {
                              )}
                        </p>
                      </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                        <div>
                          <label className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{tr("Spécialité", "Specialty", "التخصص")}</label>
                          <input type="text" value={specialty} onChange={e => setSpecialty(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl px-4 py-3 outline-none mt-2 text-slate-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-blue-500" placeholder={tr("Ex: Cardiologue", "Ex: Cardiologist", "مثال: طبيب قلب")} />
@@ -5979,7 +6094,7 @@ export default function DoctorDashboard() {
                    <div className="space-y-6">
 
                      {/* Activation / Désactivation Global */}
-                     <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                     <div className="flex flex-col gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between">
                        <div>
                          <p className="font-bold text-slate-900 dark:text-slate-100">{tr("Activer les Rendez-vous", "Enable appointments", "تفعيل المواعيد")}</p>
                          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs transition-colors">{tr("Si désactivé, vous restez visible sur la carte mais aucun patient ne peut réserver.", "If disabled, you stay visible on the map but no patient can book.", "إذا تم تعطيله فستبقى ظاهراً على الخريطة لكن لن يتمكن أي مريض من الحجز.")}</p>
@@ -5995,7 +6110,7 @@ export default function DoctorDashboard() {
                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3">
                          {tr("Choisissez qui décide la date/heure finale.", "Choose who decides the final date/time.", "اختر من يحدد التاريخ والوقت النهائيين.")}
                        </p>
-                       <div className="grid md:grid-cols-3 gap-2">
+                       <div className="grid gap-2 sm:grid-cols-3">
                          <button
                            type="button"
                            onClick={() => setBookingMode("patient_datetime")}
@@ -6032,7 +6147,7 @@ export default function DoctorDashboard() {
                       </div>
                     </div>
 
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                        <div>
                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-400 mb-1">{tr("Période par RDV (min)", "Duration per appointment (min)", "مدة الموعد (دقيقة)")}</label>
                          <input type="number" min="5" step="5" value={durationParams} onChange={e => setDurationParams(parseInt(e.target.value))} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500 font-bold" />
@@ -6058,7 +6173,7 @@ export default function DoctorDashboard() {
                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                        <p className="font-bold text-slate-900 dark:text-slate-100 mb-2">🕒 {tr("Horaires d'Ouverture", "Opening hours", "ساعات العمل")}</p>
                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{tr("Définissez vos heures globales de travail. Les patients ne pourront pas réserver en dehors de ces heures de façon automatique.", "Set your general working hours. Patients will not be able to book automatically outside these hours.", "حدد ساعات عملك العامة. لن يتمكن المرضى من الحجز تلقائياً خارج هذه الساعات.")}</p>
-                       <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                          <div>
                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">{tr("Heure d'ouverture", "Opening time", "وقت البداية")}</label>
                            <div className="relative">
@@ -6077,7 +6192,7 @@ export default function DoctorDashboard() {
                      </div>
 
                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                       <div className="flex items-center justify-between mb-4">
+                       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="font-bold text-slate-900 dark:text-slate-100">🏖️ {tr("Mode Vacances", "Vacation mode", "وضع العطلة")}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-0">{tr("Indiquez si vous êtes en congé actuellement.", "Indicate whether you are currently on leave.", "حدد ما إذا كنت في عطلة حالياً.")}</p>
@@ -6087,7 +6202,7 @@ export default function DoctorDashboard() {
                              <div className="w-12 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
                           </label>
                        </div>
-                       <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                          <div>
                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">{tr("Date de début", "Start date", "تاريخ البداية")}</label>
                            <input type="date" value={vacationStart} onChange={e => setVacationStart(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />

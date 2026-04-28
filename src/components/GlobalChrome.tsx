@@ -18,6 +18,7 @@ export default function GlobalChrome() {
   const hideFloatingAssistant =
     hideFloatingTheme ||
     pathname?.startsWith("/ai-assistant") ||
+    pathname?.startsWith("/patient-dashboard") ||
     pathname?.startsWith("/dashboardpatientlarabi") ||
     pathname?.startsWith("/dashboardoctlarabi") ||
     pathname?.startsWith("/doctor-dashboard");

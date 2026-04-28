@@ -13,6 +13,7 @@ import { useLunaChat } from "./useLunaChat";
 import DoctorDetailsModal from "./DoctorDetailsModal";
 import DoctorPublicLinks from "@/components/DoctorPublicLinks";
 import type { RecommendedDoctor } from "./types";
+import { hasDirectBackendOrigin } from "@/utils/directBackend";
 
 import { clearExpiredVacationFlag, isDoctorOnVacation } from "@/utils/doctorAvailability";
 
@@ -72,6 +73,11 @@ type PendingAttachment = {
   kind: "image" | "pdf";
   previewUrl: string | null;
 };
+
+const MAX_AI_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_AI_PROXY_SAFE_IMAGE_FILE_BYTES = 4 * 1024 * 1024;
+const MAX_AI_PDF_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_AI_PROXY_SAFE_PDF_FILE_BYTES = 2 * 1024 * 1024;
 
 
 
@@ -499,6 +505,13 @@ export default function AiAssistantView({
   const [doctorToView, setDoctorToView] = useState<RecommendedDoctor | null>(null);
   const [selectedImagePreview, setSelectedImagePreview] = useState<{ src: string; name: string } | null>(null);
   const [selectedImageZoom, setSelectedImageZoom] = useState(1);
+  const directBackendAvailable = hasDirectBackendOrigin();
+  const maxAiImageFileBytes = directBackendAvailable
+    ? MAX_AI_IMAGE_FILE_BYTES
+    : MAX_AI_PROXY_SAFE_IMAGE_FILE_BYTES;
+  const maxAiPdfFileBytes = directBackendAvailable
+    ? MAX_AI_PDF_FILE_BYTES
+    : MAX_AI_PROXY_SAFE_PDF_FILE_BYTES;
   const [isPanningImage, setIsPanningImage] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const hasUserMessages = messages.some((message) => message.role === "user");
@@ -616,9 +629,23 @@ export default function AiAssistantView({
       const supportedFiles = files.filter(
         (file) => file.type.startsWith("image/") || file.type === "application/pdf"
       );
+      const oversizedFiles = supportedFiles.filter((file) =>
+        file.type === "application/pdf"
+          ? file.size > maxAiPdfFileBytes
+          : file.size > maxAiImageFileBytes,
+      );
 
       if (supportedFiles.length !== files.length) {
         setAttachmentError("Seuls les fichiers image et PDF sont autorisés.");
+      }
+
+      if (oversizedFiles.length > 0) {
+        const file = oversizedFiles[0];
+        setAttachmentError(
+          file.type === "application/pdf"
+            ? `Les PDF doivent rester sous ${directBackendAvailable ? "5" : "2"} MB pour l'analyse AI.`
+            : `Les images doivent rester sous ${directBackendAvailable ? "8" : "4"} MB avant compression.`,
+        );
       }
 
       if (remainingSlots === 0) {
@@ -630,7 +657,11 @@ export default function AiAssistantView({
         setAttachmentError(`Vous pouvez envoyer jusqu'à 5 pièces jointes maximum. ${remainingSlots} emplacement(s) restant(s).`);
       }
 
-      const nextAttachments: PendingAttachment[] = supportedFiles.slice(0, remainingSlots).map((file) => ({
+      const acceptedFiles = supportedFiles
+        .filter((file) => !oversizedFiles.includes(file))
+        .slice(0, remainingSlots);
+
+      const nextAttachments: PendingAttachment[] = acceptedFiles.map((file) => ({
         id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
         file,
         kind: file.type === "application/pdf" ? "pdf" : "image",

@@ -57,9 +57,9 @@ export async function GET(request: Request) {
             const accountType = profile?.account_type || user?.user_metadata?.account_type
 
             if (accountType === 'doctor') {
-                return NextResponse.redirect(`${origin}/dashboardoctlarabi`)
+                return NextResponse.redirect(`${origin}/doctor-dashboard`)
             } else if (accountType === 'patient') {
-                return NextResponse.redirect(`${origin}/dashboardpatientlarabi`)
+                return NextResponse.redirect(`${origin}/patient-dashboard`)
             } else {
                 // If the user doesn't have an account type yet (fresh Google sign in),
                 // redirect them to the signup page to complete their profile.

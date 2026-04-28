@@ -39,11 +39,11 @@ export default function CommunityPage() {
       }
 
       if (profile?.account_type === "doctor") {
-        router.replace("/dashboardoctlarabi?tab=community");
+        router.replace("/doctor-dashboard?tab=community");
         return;
       }
 
-      router.replace("/dashboardpatientlarabi?tab=community");
+      router.replace("/patient-dashboard?tab=community");
     }
 
     void redirectToCommunity();

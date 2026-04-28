@@ -360,7 +360,10 @@ function Navigation({
       href: findDoctorsHref,
       label: t("common.findDoctors"),
       icon: Stethoscope,
-      isActive: pathname === "/doctors" || pathname.startsWith("/dashboardpatientlarabi"),
+      isActive:
+        pathname === "/doctors" ||
+        pathname.startsWith("/patient-dashboard") ||
+        pathname.startsWith("/dashboardpatientlarabi"),
     },
     {
       key: "assistant",
@@ -390,7 +393,16 @@ function Navigation({
 
   const mobileBottomNavItems = [
     { key: "home", href: "/", label: t("common.home"), icon: House, isActive: pathname === "/" },
-    { key: "find", href: findDoctorsHref, label: t("common.findDoctors"), icon: Stethoscope, isActive: pathname === "/doctors" || pathname.startsWith("/dashboardpatientlarabi") },
+    {
+      key: "find",
+      href: findDoctorsHref,
+      label: t("common.findDoctors"),
+      icon: Stethoscope,
+      isActive:
+        pathname === "/doctors" ||
+        pathname.startsWith("/patient-dashboard") ||
+        pathname.startsWith("/dashboardpatientlarabi"),
+    },
     { key: "community", href: "/community", label: t("common.community"), icon: FileText, isActive: pathname === "/community" },
     {
       key: "account",
@@ -400,6 +412,8 @@ function Navigation({
       isActive:
         pathname === "/login" ||
         pathname === "/signup" ||
+        pathname.startsWith("/patient-dashboard") ||
+        pathname.startsWith("/doctor-dashboard") ||
         pathname.startsWith("/dashboardpatientlarabi") ||
         pathname.startsWith("/dashboardoctlarabi"),
     },
@@ -607,7 +621,7 @@ export default function Landing() {
   const [accountType, setAccountType] = useState<ThemeAccountType>(null);
   const [accountSpecialty, setAccountSpecialty] = useState<string | null>(null);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
-  const [dashboardHref, setDashboardHref] = useState("/dashboardpatientlarabi");
+  const [dashboardHref, setDashboardHref] = useState("/patient-dashboard");
   const [authResolved, setAuthResolved] = useState(false);
   const [authPending, setAuthPending] = useState(true);
   const [dashboardWindow, setDashboardWindow] = useState<DashboardWindowState | null>(null);
@@ -627,7 +641,7 @@ export default function Landing() {
         setAccountSpecialty(null);
         setIsPlatformAdmin(false);
         setDisplayName("Dashboard");
-        setDashboardHref("/dashboardpatientlarabi");
+        setDashboardHref("/patient-dashboard");
         return;
       }
 
@@ -657,10 +671,10 @@ export default function Landing() {
 
       if (profile.account_type === "doctor") {
         setAccountType("doctor");
-        setDashboardHref("/dashboardoctlarabi");
+        setDashboardHref("/doctor-dashboard");
       } else if (profile.account_type === "patient") {
         setAccountType("patient");
-        setDashboardHref("/dashboardpatientlarabi");
+        setDashboardHref("/patient-dashboard");
       }
 
       setAccountSpecialty(profile.specialty ?? null);
@@ -754,7 +768,7 @@ export default function Landing() {
       return;
     }
 
-    const basePath = accountType === "doctor" ? "/dashboardoctlarabi" : "/dashboardpatientlarabi";
+    const basePath = accountType === "doctor" ? "/doctor-dashboard" : "/patient-dashboard";
     setDashboardWindow({
       title,
       src: `${basePath}?tab=${tab}&embed=1`,
