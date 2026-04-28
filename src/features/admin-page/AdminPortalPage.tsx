@@ -271,6 +271,7 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const autoRefreshInFlightRef = useRef(false);
+  const [isRestoringSession, setIsRestoringSession] = useState(Boolean(!initialUser));
 
   const hasSuperAdminAccess = sessionUser?.role === "super_admin";
 
@@ -404,6 +405,46 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     void loadPortal();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialUser?.id]);
+
+  useEffect(() => {
+    if (initialUser || sessionUser) {
+      setIsRestoringSession(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      try {
+        const payload = await parseJsonResponse<{
+          authenticated: boolean;
+          user: SessionUser | null;
+        }>(await fetch("/api/admin-page/session", { cache: "no-store" }));
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (payload.authenticated && payload.user) {
+          setSessionUser(payload.user);
+          await loadPortal();
+        }
+      } catch {
+        // Fall back to the login form when no valid admin session exists.
+      } finally {
+        if (isMounted) {
+          setIsRestoringSession(false);
+        }
+      }
+    };
+
+    void restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUser, sessionUser]);
 
   useEffect(() => {
     if (!sessionUser) {
@@ -673,6 +714,20 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
 
 
   if (!sessionUser) {
+    if (isRestoringSession) {
+      return (
+        <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.32),_transparent_35%),linear-gradient(180deg,_#050b18,_#0c1c39)] px-4 py-10 text-white">
+          <ThemeToggle />
+          <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
+            <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-slate-200">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Restauration de la session admin...
+            </div>
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.32),_transparent_35%),linear-gradient(180deg,_#050b18,_#0c1c39)] px-4 py-10 text-white">
         <ThemeToggle />

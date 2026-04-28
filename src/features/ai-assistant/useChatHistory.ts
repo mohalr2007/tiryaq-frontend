@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AssistantScope, ChatMessage } from "./types";
+import { fetchDirectBackend } from "@/utils/directBackend";
 
 // ── Types ────────────────────────────────────────────────────
 export type ChatSession = {
@@ -119,7 +120,11 @@ function deserializeMessage(content: string, createdAt?: string): ChatMessage {
 async function apiGet<T>(url: string): Promise<T> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), HISTORY_FETCH_TIMEOUT_MS);
-  const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
+  const res = await fetchDirectBackend(
+    url,
+    { signal: controller.signal, cache: "no-store" },
+    { fallbackPath: url },
+  );
   window.clearTimeout(timeoutId);
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json() as Promise<T>;
@@ -128,13 +133,17 @@ async function apiGet<T>(url: string): Promise<T> {
 async function apiPost<T>(body: unknown): Promise<T> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), HISTORY_FETCH_TIMEOUT_MS);
-  const res = await fetch("/api/ai-history", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: controller.signal,
-    cache: "no-store",
-  });
+  const res = await fetchDirectBackend(
+    "/api/ai-history",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+      cache: "no-store",
+    },
+    { fallbackPath: "/api/ai-history" },
+  );
   window.clearTimeout(timeoutId);
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json() as Promise<T>;
@@ -372,7 +381,11 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
     });
     lsDel(lsMsgKey(assistantScope, sessionId));
 
-    await fetch(`/api/ai-history?session_id=${sessionId}`, { method: "DELETE" }).catch(() => {});
+    await fetchDirectBackend(
+      `/api/ai-history?session_id=${sessionId}`,
+      { method: "DELETE" },
+      { fallbackPath: `/api/ai-history?session_id=${sessionId}` },
+    ).catch(() => {});
     if (sessionIdRef.current === sessionId) {
       sessionIdRef.current = null;
       setCurrentSessionIdState(null);
