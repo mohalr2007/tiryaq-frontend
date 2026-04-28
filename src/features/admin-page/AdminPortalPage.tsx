@@ -38,6 +38,7 @@ import type {
   AdminPortalRole,
   AdminUserPublic,
 } from "./types";
+import { fetchAdminApiJson } from "./apiClient";
 
 const ThemeToggle = dynamic(() => import("@/components/ThemeToggle"), {
   ssr: false,
@@ -76,26 +77,12 @@ const defaultOverview: AdminPortalOverview = {
   blockedEmails: 0,
 };
 
-async function parseJsonResponse<T>(response: Response): Promise<T> {
-  const rawText = await response.text();
-  let payload: ({ error?: string } & T) | null = null;
-  if (rawText) {
-    try {
-      payload = JSON.parse(rawText) as { error?: string } & T;
-    } catch {
-      throw new Error("Réponse API invalide.");
-    }
-  }
-
-  if (!response.ok) {
-    throw new Error(payload?.error ?? "Erreur API.");
-  }
-
-  if (!payload) {
-    throw new Error("Réponse API vide ou invalide.");
-  }
-
-  return payload as T;
+function collectSettledErrors(results: PromiseSettledResult<unknown>[]) {
+  return results
+    .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+    .map((result) =>
+      result.reason instanceof Error ? result.reason.message : "Erreur inconnue du portail admin."
+    );
 }
 
 function initialsFromName(value: string | null | undefined) {
@@ -300,9 +287,9 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     : "";
 
   const loadOverview = async () => {
-    const payload = await parseJsonResponse<AdminPortalOverview>(
-      await fetch("/api/admin-page/overview", { cache: "no-store" })
-    );
+    const payload = await fetchAdminApiJson<AdminPortalOverview>("/api/admin-page/overview", {}, {
+      retries: 1,
+    });
     setOverview({
       ...defaultOverview,
       ...payload,
@@ -310,8 +297,10 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
   };
 
   const loadDoctors = async () => {
-    const payload = await parseJsonResponse<{ doctors: AdminManagedDoctor[] }>(
-      await fetch(`/api/admin-page/doctors?status=all`, { cache: "no-store" })
+    const payload = await fetchAdminApiJson<{ doctors: AdminManagedDoctor[] }>(
+      "/api/admin-page/doctors?status=all",
+      {},
+      { retries: 1 },
     );
     const nextDoctors = Array.isArray(payload.doctors) ? payload.doctors : [];
     setDoctors(nextDoctors);
@@ -327,17 +316,19 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
   };
 
   const loadAdmins = async () => {
-    const payload = await parseJsonResponse<{ admins: AdminUserPublic[] }>(
-      await fetch("/api/admin-page/admins", { cache: "no-store" })
+    const payload = await fetchAdminApiJson<{ admins: AdminUserPublic[] }>(
+      "/api/admin-page/admins",
+      {},
+      { retries: 1 },
     );
     setAdmins(Array.isArray(payload.admins) ? payload.admins : []);
   };
 
   const loadReports = async () => {
-    const payload = await parseJsonResponse<{
+    const payload = await fetchAdminApiJson<{
       reports: AdminCommunityReport[];
       blockedEmails: AdminBlockedEmail[];
-    }>(await fetch("/api/admin-page/reports", { cache: "no-store" }));
+    }>("/api/admin-page/reports", {}, { retries: 1 });
     setReports(Array.isArray(payload.reports) ? payload.reports : []);
     setBlockedEmails(Array.isArray(payload.blockedEmails) ? payload.blockedEmails : []);
   };
@@ -348,21 +339,22 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
       setErrorMessage(null);
     }
 
-    const results = await Promise.allSettled([
-        loadOverview(),
-        loadDoctors(),
-        loadAdmins(),
-        loadReports(),
-    ]);
+    const primaryResults = await Promise.allSettled([loadOverview(), loadDoctors()]);
+    const secondaryResults = await Promise.allSettled([loadAdmins(), loadReports()]);
 
-    const errors = results
-      .filter((result): result is PromiseRejectedResult => result.status === "rejected")
-      .map((result) =>
-        result.reason instanceof Error ? result.reason.message : "Erreur inconnue du portail admin."
-      );
+    const primaryErrors = collectSettledErrors(primaryResults);
+    const secondaryErrors = collectSettledErrors(secondaryResults);
 
-    if (errors.length > 0) {
-      setErrorMessage(Array.from(new Set(errors)).join(" | "));
+    if (primaryErrors.length > 0 || secondaryErrors.length > 0) {
+      const primaryMessage =
+        primaryErrors.length > 0
+          ? `Chargement principal incomplet: ${Array.from(new Set(primaryErrors)).join(" | ")}`
+          : null;
+      const secondaryMessage =
+        secondaryErrors.length > 0
+          ? `Sections secondaires indisponibles: ${Array.from(new Set(secondaryErrors)).join(" | ")}`
+          : null;
+      setErrorMessage([primaryMessage, secondaryMessage].filter(Boolean).join(" | "));
     } else if (!silent) {
       setErrorMessage(null);
     }
@@ -377,8 +369,10 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     }
 
     try {
-      const payload = await parseJsonResponse<{ doctor: AdminManagedDoctorDetails }>(
-        await fetch(`/api/admin-page/doctors/${doctorId}`, { cache: "no-store" })
+      const payload = await fetchAdminApiJson<{ doctor: AdminManagedDoctorDetails }>(
+        `/api/admin-page/doctors/${doctorId}`,
+        {},
+        { retries: 1 },
       );
 
       setSelectedDoctor(payload.doctor);
@@ -416,10 +410,10 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
 
     const restoreSession = async () => {
       try {
-        const payload = await parseJsonResponse<{
+        const payload = await fetchAdminApiJson<{
           authenticated: boolean;
           user: SessionUser | null;
-        }>(await fetch("/api/admin-page/session", { cache: "no-store" }));
+        }>("/api/admin-page/session", {}, { retries: 1 });
 
         if (!isMounted) {
           return;
@@ -429,8 +423,14 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
           setSessionUser(payload.user);
           await loadPortal();
         }
-      } catch {
-        // Fall back to the login form when no valid admin session exists.
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Impossible de vérifier la session admin pour le moment.",
+          );
+        }
       } finally {
         if (isMounted) {
           setIsRestoringSession(false);
@@ -495,13 +495,14 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     setSuccessMessage(null);
 
     try {
-      const response = await fetch("/api/admin-page/login", {
+      const payload = await fetchAdminApiJson<{ ok: boolean; user: SessionUser }>(
+        "/api/admin-page/login",
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginState),
-      });
-
-      const payload = await parseJsonResponse<{ ok: boolean; user: SessionUser }>(response);
+        },
+      );
       setSessionUser(payload.user);
       setSuccessMessage("Connexion admin ouverte avec succès.");
       setLoginState({ username: "", password: "" });
@@ -514,7 +515,7 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
   };
 
   const handleLogout = async () => {
-    await fetch("/api/admin-page/logout", { method: "POST" });
+    await fetchAdminApiJson<{ ok: boolean }>("/api/admin-page/logout", { method: "POST" });
     setSessionUser(null);
     setOverview(defaultOverview);
     setDoctors([]);
@@ -535,15 +536,16 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     setSuccessMessage(null);
 
     try {
-      await parseJsonResponse<{ doctor: AdminManagedDoctor }>(
-        await fetch(`/api/admin-page/doctors/${doctorId}`, {
+      await fetchAdminApiJson<{ doctor: AdminManagedDoctor }>(
+        `/api/admin-page/doctors/${doctorId}`,
+        {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action,
             note: doctorNotes[doctorId] ?? "",
           }),
-        })
+        },
       );
 
       setSuccessMessage(
@@ -586,15 +588,16 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     setIsCreatingAdmin(true);
 
     try {
-      await parseJsonResponse<{ admin: AdminUserPublic }>(
-        await fetch("/api/admin-page/admins", {
+      await fetchAdminApiJson<{ admin: AdminUserPublic }>(
+        "/api/admin-page/admins",
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...createAdminState,
             username,
           }),
-        })
+        },
       );
 
       setCreateAdminState({
@@ -633,15 +636,16 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     setSuccessMessage(null);
 
     try {
-      await parseJsonResponse<{ ok: boolean }>(
-        await fetch(`/api/admin-page/reports/${report.reportType}/${report.id}`, {
+      await fetchAdminApiJson<{ ok: boolean }>(
+        `/api/admin-page/reports/${report.reportType}/${report.id}`,
+        {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             actionType,
             reason: askedReason,
           }),
-        })
+        },
       );
 
       setSuccessMessage(`Signalement traité: ${moderationActionLabel(actionType)}.`);
@@ -668,12 +672,13 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     setSuccessMessage(null);
 
     try {
-      await parseJsonResponse<{ ok: boolean }>(
-        await fetch(`/api/admin-page/blocked-emails/${blockedEmail.id}`, {
+      await fetchAdminApiJson<{ ok: boolean }>(
+        `/api/admin-page/blocked-emails/${blockedEmail.id}`,
+        {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ releaseNote }),
-        })
+        },
       );
 
       setSuccessMessage("Email réautorisé avec succès.");
@@ -692,12 +697,13 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
     setSuccessMessage(null);
 
     try {
-      await parseJsonResponse<{ ok: boolean }>(
-        await fetch("/api/admin-page/blocked-emails", {
+      await fetchAdminApiJson<{ ok: boolean }>(
+        "/api/admin-page/blocked-emails",
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: blockEmailAddress, reason: blockEmailReason }),
-        })
+        },
       );
 
       setSuccessMessage(`L'email ${blockEmailAddress} a été bloqué avec succès.`);
@@ -802,7 +808,7 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
                 </label>
                 {errorMessage ? (
                   <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-                    {errorMessage}
+                    <p>{errorMessage}</p>
                   </div>
                 ) : null}
                 {successMessage ? (
@@ -884,8 +890,16 @@ export default function AdminPortalPage({ initialUser = null }: AdminPortalPageP
         </section>
 
         {errorMessage ? (
-          <div className="rounded-3xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-100">
-            {errorMessage}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-100">
+            <p>{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => void loadPortal()}
+              className="inline-flex items-center gap-2 rounded-2xl border border-rose-300/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-50 transition hover:bg-rose-500/20"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Réessayer
+            </button>
           </div>
         ) : null}
         {successMessage ? (

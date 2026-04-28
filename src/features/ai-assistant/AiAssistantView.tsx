@@ -549,6 +549,14 @@ export default function AiAssistantView({
     scrollLeft: 0,
     scrollTop: 0,
   });
+  const historyStatusMessage = history.isPersistenceDegraded
+    ? tr(
+        language,
+        "Historique distant indisponible pour le moment. Le cache local reste actif.",
+        "Remote history is temporarily unavailable. Local cache is still active.",
+        "سجل المحادثات البعيد غير متاح حالياً، لكن التخزين المحلي ما زال يعمل."
+      )
+    : null;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -769,12 +777,19 @@ export default function AiAssistantView({
           {userRole === "doctor" ? t("ai.assistant.doctorHistory") : t("ai.assistant.pastConversations")}
         </p>
         <div className="flex flex-col gap-1">
+          {historyStatusMessage ? (
+            <p className="px-3 py-2 text-xs leading-5 text-amber-600 dark:text-amber-300">
+              {historyStatusMessage}
+            </p>
+          ) : null}
           {history.isLoadingHistory ? (
             <div className="px-3 py-4 flex items-center justify-center">
               <Loader2 size={16} className="animate-spin text-slate-400 dark:text-slate-500" />
             </div>
           ) : history.sessions.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">{t("ai.assistant.noHistory")}</p>
+            <p className="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">
+              {historyStatusMessage ?? t("ai.assistant.noHistory")}
+            </p>
           ) : (
             history.sessions.map((session, sIdx) => (
               <div key={buildSessionKey(session, sIdx)} className="group relative flex items-center justify-between">
@@ -825,10 +840,17 @@ export default function AiAssistantView({
         </button>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {historyStatusMessage ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+            {historyStatusMessage}
+          </div>
+        ) : null}
         {history.isLoadingHistory ? (
            <div className="p-4 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>
         ) : history.sessions.length === 0 ? (
-           <p className="text-sm text-slate-500 text-center py-4">{t("ai.assistant.noHistory")}</p>
+           <p className="text-sm text-slate-500 text-center py-4">
+             {historyStatusMessage ?? t("ai.assistant.noHistory")}
+           </p>
         ) : (
           history.sessions.map((session, sIdx) => (
             <div key={buildSessionKey(session, sIdx)} className="group relative flex items-center justify-between bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 border border-slate-100 dark:border-slate-800 shadow-sm">

@@ -693,13 +693,13 @@ export function useLunaChat(): UseLunaChatReturn {
         return;
       }
 
-      sessionCreatedRef.current = true;
       const sessionId = await history.createSession(sessionTitle ?? firstMessage.content);
       if (sessionId) {
-        if (messages.length > 0 && messages[0].role === "assistant") {
-          await history.appendMessage(messages[0]);
+        sessionCreatedRef.current = true;
+        const localConversation = [...messages, firstMessage];
+        for (const message of localConversation) {
+          await history.appendMessage(message);
         }
-        await history.appendMessage(firstMessage);
       }
     },
     [history, messages]

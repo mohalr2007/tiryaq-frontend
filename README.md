@@ -33,6 +33,9 @@ Copy `.env.example` and fill:
 - Root directory: `TIRYAQ/frontend`
 - Build command: `npm run build`
 - Output: Next.js default
-- Environment variable required for API proxy:
-  - `BACKEND_ORIGIN=https://your-render-backend.onrender.com`
-"# tiryaq-frontend" 
+- Environment variables required for production:
+  - `BACKEND_ORIGIN=https://tiryaq-backeend.onrender.com`
+  - `NEXT_PUBLIC_BACKEND_ORIGIN=https://tiryaq-backeend.onrender.com`
+  - `APP_BASE_URL=https://tiryaq-chi.vercel.app`
+  - `NEXT_PUBLIC_APP_BASE_URL=https://tiryaq-chi.vercel.app`
+- `BACKEND_ORIGIN` and `NEXT_PUBLIC_BACKEND_ORIGIN` must both point to the Render backend, never to the Vercel frontend URL.

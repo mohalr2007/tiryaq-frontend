@@ -25,7 +25,7 @@ import { logAuditEvent, logPerformanceEvent } from "../../utils/telemetry";
 import { getBrowserLocation } from "../../utils/location";
 import {
   filterApprovedDoctors,
-  getApprovedDoctorIdsSet,
+  getApprovedDoctorIdsResult,
 } from "@/utils/approvedDoctorsClient";
 import { Logo } from "../../components/Logo";
 import { useI18n } from "@/lib/i18n";
@@ -711,6 +711,7 @@ export default function PatientDashboard() {
   const noticeTimerRef = useRef<number | null>(null);
   const realtimeRefreshTimerRef = useRef<number | null>(null);
   const manualRefreshTimerRef = useRef<number | null>(null);
+  const approvedDoctorWarningRef = useRef<string | null>(null);
   const activeTabRef = useRef(activeTab);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const getSortButtonClasses = (isActive: boolean) =>
@@ -1389,8 +1390,25 @@ export default function PatientDashboard() {
     radius?: number,
   ): Promise<DoctorSummary[]> => {
     const startedAt = performance.now();
-    const approvedDoctorIds = await getApprovedDoctorIdsSet();
+    const approvedDoctorResult = await getApprovedDoctorIdsResult();
+    const approvedDoctorIds = approvedDoctorResult.ids;
     const approvedDoctorIdList = Array.from(approvedDoctorIds ?? []);
+
+    if (approvedDoctorResult.warning) {
+      if (approvedDoctorWarningRef.current !== approvedDoctorResult.warning) {
+        approvedDoctorWarningRef.current = approvedDoctorResult.warning;
+        showNotice(
+          tr(
+            "La liste des docteurs approuvés n'a pas pu être rafraîchie complètement. Les données disponibles ont été conservées.",
+            "The approved doctor list could not be fully refreshed. Available data was kept.",
+            "تعذر تحديث قائمة الأطباء المعتمدين بالكامل. تم الاحتفاظ بالبيانات المتاحة."
+          ),
+          "info",
+        );
+      }
+    } else {
+      approvedDoctorWarningRef.current = null;
+    }
 
     if (approvedDoctorIdList.length === 0) {
       void logPerformanceEvent({
@@ -1398,7 +1416,12 @@ export default function PatientDashboard() {
         pageKey: "dashboard_patient",
         metricName: "search_map_result_latency",
         metricMs: performance.now() - startedAt,
-        context: { geolocated: false, result_count: 0, approvals_ready: false },
+        context: {
+          geolocated: false,
+          result_count: 0,
+          approvals_ready: false,
+          approvals_source: approvedDoctorResult.source,
+        },
       });
       return [];
     }
@@ -1443,6 +1466,7 @@ export default function PatientDashboard() {
               geolocated: true,
               radius_km: radius,
               result_count: mappedDocs.length,
+              approvals_source: approvedDoctorResult.source,
             },
           });
           return mappedDocs;
@@ -1483,7 +1507,11 @@ export default function PatientDashboard() {
       pageKey: "dashboard_patient",
       metricName: "search_map_result_latency",
       metricMs: performance.now() - startedAt,
-      context: { geolocated: false, result_count: mappedDocs.length },
+      context: {
+        geolocated: false,
+        result_count: mappedDocs.length,
+        approvals_source: approvedDoctorResult.source,
+      },
     });
     return mappedDocs;
   };
