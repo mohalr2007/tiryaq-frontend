@@ -13,10 +13,29 @@ const HOP_BY_HOP_HEADERS = new Set([
   "upgrade",
 ]);
 
-function getBackendOrigin() {
-  const configured = process.env.BACKEND_ORIGIN?.trim();
-  if (configured) {
-    return configured.replace(/\/+$/, "");
+function normalizeOrigin(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.replace(/\/+$/, "");
+}
+
+function getBackendOrigin(request: NextRequest) {
+  const requestOrigin = normalizeOrigin(request.nextUrl.origin);
+  const configuredOrigins = [
+    normalizeOrigin(process.env.BACKEND_ORIGIN),
+    normalizeOrigin(process.env.NEXT_PUBLIC_BACKEND_ORIGIN),
+  ].filter((origin): origin is string => Boolean(origin));
+
+  const safeOrigin = configuredOrigins.find((origin) => origin !== requestOrigin);
+  if (safeOrigin) {
+    return safeOrigin;
+  }
+
+  if (configuredOrigins.length > 0) {
+    return null;
   }
 
   return process.env.NODE_ENV === "production" ? null : "http://127.0.0.1:4000";
@@ -26,11 +45,14 @@ export async function forwardToBackend(
   request: NextRequest,
   pathname: string,
 ) {
-  const backendOrigin = getBackendOrigin();
+  const backendOrigin = getBackendOrigin(request);
 
   if (!backendOrigin) {
     return NextResponse.json(
-      { error: "BACKEND_ORIGIN n'est pas configuré côté frontend." },
+      {
+        error:
+          "Le frontend pointe vers lui-même. Configurez BACKEND_ORIGIN ou NEXT_PUBLIC_BACKEND_ORIGIN avec l'URL Render du backend, pas l'URL Vercel du frontend.",
+      },
       { status: 500 },
     );
   }
@@ -47,12 +69,26 @@ export async function forwardToBackend(
   const hasBody = !["GET", "HEAD"].includes(method);
   const body = hasBody ? Buffer.from(await request.arrayBuffer()) : undefined;
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers,
-    body,
-    redirect: "manual",
-  });
+  let upstream: Response;
+
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers,
+      body,
+      redirect: "manual",
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? `Le backend distant est injoignable: ${error.message}`
+            : "Le backend distant est injoignable.",
+      },
+      { status: 502 },
+    );
+  }
 
   const responseHeaders = new Headers();
   upstream.headers.forEach((value, key) => {

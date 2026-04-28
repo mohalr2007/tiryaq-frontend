@@ -5273,7 +5273,7 @@ export default function DoctorDashboard() {
                           </div>
                         ) : null}
                       </div>
-                      <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex gap-3 justify-end">
+                      <div className="flex flex-col-reverse justify-end gap-3 border-t border-slate-100 p-6 dark:border-slate-800 sm:flex-row">
                         <button onClick={() => setShowNewVisitModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">Annuler</button>
                         <button disabled={visitLoading} onClick={async () => {
                           if (!newVisitForm.visit_date) { showNotice('Date requise', 'error'); return; }
@@ -5543,7 +5543,7 @@ export default function DoctorDashboard() {
 
                       {/* Remarques générales */}
                       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <h3 className="font-bold text-slate-900 dark:text-white">Remarques Générales</h3>
                           <button onClick={() => { if (editingGeneralRemarks) { setEditingGeneralRemarks(false); } else { setGeneralRemarksEdit(selectedDossier.general_remarks ?? ''); setEditingGeneralRemarks(true); } }} className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"><Pencil size={12} />{editingGeneralRemarks ? 'Annuler' : 'Modifier'}</button>
                         </div>
@@ -6279,7 +6279,7 @@ export default function DoctorDashboard() {
                       `المريض: ${appointmentToSchedule.patient?.full_name ?? "المريض"}.`
                     )}
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Date</label>
                   <input
