@@ -1,0 +1,8 @@
+
+> tiryaq-frontend@0.1.0 start
+> next start --hostname 0.0.0.0 --port 3060
+
+▲ Next.js 16.2.1
+- Local:         http://localhost:3060
+- Network:       http://0.0.0.0:3060
+✓ Ready in 1900ms

@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Your custom styles here */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --input-text: #0f172a;
+  --input-placeholder: #94a3b8;
+  --scrollbar-track: rgba(226, 232, 240, 0.9);
+  --scrollbar-thumb: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  --scrollbar-thumb-solid: #2563eb;
+  --scrollbar-thumb-hover: #1d4ed8;
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #e2e8f0;
+  --input-bg: #0f172a;
+  --input-border: #334155;
+  --input-text: #e2e8f0;
+  --input-placeholder: #94a3b8;
+  --scrollbar-track: rgba(15, 23, 42, 0.92);
+  --scrollbar-thumb: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+  --scrollbar-thumb-solid: #3b82f6;
+  --scrollbar-thumb-hover: #60a5fa;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: var(--scrollbar-thumb-solid) var(--scrollbar-track);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body::-webkit-scrollbar {
+  width: 12px;
+}
+
+body::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-left: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+body::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Disable transitions for one frame during theme switch to avoid visible lag */
+.theme-no-transition *,
+.theme-no-transition *::before,
+.theme-no-transition *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Utility for horizontal mobile nav scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Keep native form controls readable in both themes */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+textarea,
+select {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--input-text);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+.dark select option {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  [data-print-hidden="true"] {
+    display: none !important;
+  }
+
+  main[data-prescription-public="true"] {
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .prescription-print-page {
+    width: 194mm !important;
+    max-width: 194mm !important;
+    min-height: 276.5mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .prescription-print-card {
+    min-height: 276.5mm !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@media screen {
+  .prescription-print-page[data-prescription-sheet="true"] {
+    min-height: 1260px;
+  }
+}
+
+@media screen and (max-width: 1023px) {
+  .prescription-print-page[data-prescription-sheet="true"] {
+    min-height: calc((100vw - 2rem) * 1.4142857);
+  }
+}

@@ -1,0 +1,252 @@
+.loginPage {
+  min-height: 100vh;
+  background-color: #eff8fc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 500px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  padding: 32px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #666666;
+  text-align: center;
+  margin: 0 0 28px 0;
+}
+
+.formGroup {
+  margin-bottom: 24px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 8px;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 16px;
+  font-size: 16px;
+  outline: none;
+  color: #1e293b;
+  width: 100%;
+}
+
+.input::placeholder {
+  color: #94a3b8;
+}
+
+.forgotLink {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.rememberGroup {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  color: #333333;
+}
+
+.checkbox {
+  opacity: 0;
+  position: absolute;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  height: 18px;
+  width: 18px;
+  background-color: #f1f5f9;
+  border-radius: 4px;
+  margin-right: 8px;
+  display: inline-block;
+  position: relative;
+  border: 1px solid #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.checkboxLabel:hover .checkmark {
+  background-color: #e2e8f0;
+}
+
+.checkbox:checked + .checkmark {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.checkbox:checked + .checkmark:after {
+  content: "";
+  position: absolute;
+  display: block;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkboxText {
+  margin-left: 4px;
+}
+
+.btnPrimary {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnPrimary:hover {
+  background: #1d4ed8;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 28px 0;
+  color: #94a3b8;
+}
+
+.divider span {
+  font-size: 14px;
+  padding: 0 16px;
+  background: #eff8fc;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.socialButtons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.btnSocial {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnSocial:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.signupLink {
+  text-align: center;
+  font-size: 14px;
+  color: #647481;
+}
+
+.terms {
+  text-align: center;
+  font-size: 12px;
+  color: #647481;
+  margin-top: 28px;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .loginCard {
+    padding: 24px 20px;
+  }
+  .title {
+    font-size: 24px;
+  }
+}

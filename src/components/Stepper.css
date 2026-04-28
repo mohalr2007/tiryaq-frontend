@@ -1,0 +1,226 @@
+:root {
+  --step-inactive-bg: #e2e8f0;
+  --step-inactive-color: #64748b;
+  --step-active-bg: #2563eb;
+  --step-active-color: #ffffff;
+  --step-complete-bg: #2563eb;
+  --step-complete-color: #93c5fd;
+  --step-connector-bg: #2563eb;
+  --border-color: #e2e8f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --step-inactive-bg: #334155;
+    --step-inactive-color: #94a3b8;
+    --step-active-bg: #3b82f6;
+    --step-active-color: #ffffff;
+    --step-complete-bg: #3b82f6;
+    --step-complete-color: #bfdbfe;
+    --step-connector-bg: #3b82f6;
+    --border-color: #334155;
+  }
+}
+
+.outer-container {
+  display: flex;
+  min-height: 100%;
+  flex: 1 1 0%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* padding: 1rem; */
+}
+
+/* @media (min-width: 640px) {
+  .outer-container {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+@media (min-width: 768px) {
+  .outer-container {
+    aspect-ratio: 2 / 1;
+  }
+} */
+
+.step-circle-container {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  border-radius: 1.5rem;
+  /* box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04); */
+  background: transparent;
+}
+
+.step-indicator-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: 1.5rem 1rem;
+}
+
+.step-content-default {
+  position: relative;
+  overflow: hidden;
+}
+
+.step-default {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.footer-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-bottom: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.footer-nav {
+  display: flex;
+}
+
+.footer-nav.spread {
+  justify-content: space-between;
+}
+
+.footer-nav.end {
+  justify-content: flex-end;
+}
+
+.back-button {
+  transition: all 250ms;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: var(--step-inactive-color);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: var(--step-inactive-bg);
+}
+
+.back-button.inactive {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.next-button {
+  transition: all 250ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background-color: var(--step-active-bg);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.next-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.next-button:active {
+  transform: translateY(0px);
+}
+
+.step-indicator {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+}
+
+.step-indicator-inner {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.active-dot {
+  height: 0.75rem;
+  width: 0.75rem;
+  border-radius: 9999px;
+  background-color: #fff;
+}
+
+.step-number {
+  font-size: 0.875rem;
+}
+
+.step-connector {
+  position: relative;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
+  height: 0.15rem;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background-color: var(--step-inactive-bg);
+}
+
+.step-connector-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+}
+
+.check-icon {
+  height: 1.25rem;
+  width: 1.25rem;
+  color: #fff;
+}
+
+@media (max-width: 639px) {
+  .step-indicator-row {
+    padding: 1rem 0.75rem;
+  }
+
+  .step-indicator-inner {
+    height: 1.9rem;
+    width: 1.9rem;
+  }
+
+  .step-connector {
+    margin-left: 0.35rem;
+    margin-right: 0.35rem;
+  }
+
+  .step-default {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .footer-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-bottom: 1rem;
+  }
+
+  .footer-nav,
+  .footer-nav.spread,
+  .footer-nav.end {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    justify-content: stretch;
+  }
+
+  .back-button,
+  .next-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
