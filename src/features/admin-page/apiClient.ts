@@ -113,6 +113,7 @@ export async function fetchAdminApiJson<T>(
       const response = await fetch(path, {
         ...init,
         cache: init.cache ?? "no-store",
+        credentials: init.credentials ?? "same-origin",
         signal: controller.signal,
       });
 

@@ -264,6 +264,18 @@ function buildSessionTitle(text: string, attachments: ChatAttachment[]) {
   return `${attachments.length} pièces jointes`;
 }
 
+function createChatMessageId(role: ChatMessage["role"]) {
+  return `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function stripLunaDataTag(text: string) {
+  return text
+    .replace(/\(?<LUNA_DATA>\s*[\s\S]*?\s*<\/LUNA_DATA>\)?/gi, "")
+    .replace(/```(?:json|xml)?\s*```/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 async function parseApiJsonOrThrow<T>(response: Response, fallbackError: string): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
   const rawText = await response.text();
@@ -480,20 +492,25 @@ export function useLunaChat(): UseLunaChatReturn {
 
   const appendAssistantMessage = useCallback(
     async (content: string, options?: { suggestedDoctors?: RecommendedDoctor[] }) => {
+      const nextSuggestedDoctors = options?.suggestedDoctors
+        ? deduplicateDoctors(options.suggestedDoctors)
+        : [];
       const assistantMessage: ChatMessage = {
+        id: createChatMessageId("assistant"),
         role: "assistant",
-        content,
+        content: stripLunaDataTag(content),
         timestamp: Date.now(),
       };
-      if (options?.suggestedDoctors && options.suggestedDoctors.length > 0) {
-        assistantMessage.suggestedDoctors = options.suggestedDoctors;
+      if (nextSuggestedDoctors.length > 0) {
+        assistantMessage.suggestedDoctors = nextSuggestedDoctors;
       }
       setMessages((previous) => [...previous, assistantMessage]);
-      if (options?.suggestedDoctors && options.suggestedDoctors.length > 0) {
-        setSuggestedDoctors(options.suggestedDoctors);
-        setDoctorContext(options.suggestedDoctors);
+      if (nextSuggestedDoctors.length > 0) {
+        setSuggestedDoctors(nextSuggestedDoctors);
+        setDoctorContext(nextSuggestedDoctors);
       } else {
         setSuggestedDoctors([]);
+        setDoctorContext([]);
       }
       await history.appendMessage(assistantMessage);
       return assistantMessage;
@@ -501,30 +518,44 @@ export function useLunaChat(): UseLunaChatReturn {
     [history]
   );
 
-  const attachDoctorsToLatestAssistantMessage = useCallback(
-    (docs: RecommendedDoctor[]) => {
-      setSuggestedDoctors(docs);
-      setDoctorContext(docs);
+  const attachDoctorsToAssistantMessage = useCallback(
+    (assistantMessageId: string, docs: RecommendedDoctor[]) => {
+      const deduplicatedDoctors = deduplicateDoctors(docs);
       let nextMessages: ChatMessage[] | null = null;
+      let shouldRefreshDiscussionDoctors = false;
 
       setMessages((previous) => {
+        const targetAssistantIndex = previous.findIndex(
+          (message) => message.role === "assistant" && message.id === assistantMessageId
+        );
+
+        if (targetAssistantIndex < 0) {
+          return previous;
+        }
+
         const lastAssistantIndex = [...previous]
           .map((message, index) => ({ message, index }))
           .reverse()
           .find((entry) => entry.message.role === "assistant")?.index;
 
-        if (lastAssistantIndex == null) {
-          return previous;
+        const next = [...previous];
+        next[targetAssistantIndex] = {
+          ...next[targetAssistantIndex],
+          suggestedDoctors: deduplicatedDoctors,
+        };
+
+        if (targetAssistantIndex === lastAssistantIndex) {
+          shouldRefreshDiscussionDoctors = true;
         }
 
-        const next = [...previous];
-        next[lastAssistantIndex] = {
-          ...next[lastAssistantIndex],
-          suggestedDoctors: docs,
-        };
         nextMessages = next;
         return next;
       });
+
+      if (shouldRefreshDiscussionDoctors) {
+        setSuggestedDoctors(deduplicatedDoctors);
+        setDoctorContext(deduplicatedDoctors);
+      }
 
       if (nextMessages) {
         history.replaceMessages(nextMessages);
@@ -617,7 +648,11 @@ export function useLunaChat(): UseLunaChatReturn {
   );
 
   const loadDoctors = useCallback(
-    async (specialty: string, currentLocation: UserLocation | null) => {
+    async (
+      specialty: string,
+      currentLocation: UserLocation | null,
+      assistantMessageId: string
+    ) => {
       if (assistantScope !== "patient") {
         return;
       }
@@ -626,14 +661,14 @@ export function useLunaChat(): UseLunaChatReturn {
       try {
         await syncExpiredDoctorVacations();
         const docs = await fetchDoctorsForSpecialties([specialty], currentLocation);
-        attachDoctorsToLatestAssistantMessage(docs);
+        attachDoctorsToAssistantMessage(assistantMessageId, docs);
       } catch {
         // silent fallback
       } finally {
         setIsLoadingDoctors(false);
       }
     },
-    [assistantScope, attachDoctorsToLatestAssistantMessage, fetchDoctorsForSpecialties]
+    [assistantScope, attachDoctorsToAssistantMessage, fetchDoctorsForSpecialties]
   );
 
   const handlePatientBookingRedirect = useCallback(
@@ -790,6 +825,7 @@ export function useLunaChat(): UseLunaChatReturn {
         }));
 
         const userMessage: ChatMessage = {
+          id: createChatMessageId("user"),
           role: "user",
           content: trimmedText,
           attachments: messageAttachments,
@@ -918,8 +954,16 @@ export function useLunaChat(): UseLunaChatReturn {
               : "L'assistant ne peut pas répondre pour le moment. Réessayez."
         );
 
-        await appendAssistantMessage(
-          data.reply ?? "Une erreur est survenue.",
+        const assistantReply =
+          stripLunaDataTag(data.reply ?? "") ||
+          (language === "ar"
+            ? "تعذر إكمال الرد الآن."
+            : language === "en"
+              ? "I could not complete the reply just now."
+              : "Je n'ai pas pu terminer la réponse pour le moment.");
+
+        const assistantMessage = await appendAssistantMessage(
+          assistantReply,
           assistantScope === "patient" && promptDoctors.length > 0
             ? { suggestedDoctors: promptDoctors }
             : undefined
@@ -937,12 +981,12 @@ export function useLunaChat(): UseLunaChatReturn {
 
           if (promptDoctors.length > 0) {
             // Suggestions already attached to the assistant reply and cached in place.
-          } else if (data.forceAll) {
-            void loadDoctors(data.specialty, null);
-          } else {
+          } else if (assistantMessage.id && data.forceAll) {
+            void loadDoctors(data.specialty, null, assistantMessage.id);
+          } else if (assistantMessage.id) {
             const currentLocation = locationRef.current ?? (await resolveBrowserLocation(true));
             if (currentLocation) {
-              void loadDoctors(data.specialty, currentLocation);
+              void loadDoctors(data.specialty, currentLocation, assistantMessage.id);
             }
           }
         }

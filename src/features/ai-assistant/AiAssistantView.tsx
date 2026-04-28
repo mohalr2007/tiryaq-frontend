@@ -39,9 +39,13 @@ function MofidLogo({
 }
 
 function buildMessageKey(
-  msg: { role: string; content: string; timestamp?: number; attachments?: Array<{ name: string }> },
+  msg: { id?: string; role: string; content: string; timestamp?: number; attachments?: Array<{ name: string }> },
   index: number
 ) {
+  if (msg.id?.trim()) {
+    return `${msg.id}-${index}`;
+  }
+
   const attachmentKey = msg.attachments?.map((attachment) => attachment.name).join("|") ?? "no-attachments";
   return `${msg.role}-${msg.timestamp ?? "no-time"}-${msg.content.slice(0, 24)}-${attachmentKey}-${index}`;
 }

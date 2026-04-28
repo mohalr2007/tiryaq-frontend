@@ -48,6 +48,7 @@ export type ChatAttachment = {
 };
 
 export type ChatMessage = {
+  id?: string;
   role: "user" | "assistant";
   content: string;
   timestamp?: number;
