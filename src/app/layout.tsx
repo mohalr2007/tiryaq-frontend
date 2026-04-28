@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
 import AppProviders from "@/components/AppProviders";
@@ -8,9 +8,15 @@ import {
   type AppLanguage,
 } from "@/lib/i18n-config";
 export const metadata: Metadata = {
+  applicationName: "TIRYAQ",
   title: "TIRYAQ",
   description: "Plateforme médicale intelligente TIRYAQ",
   manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "TIRYAQ",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -24,6 +30,16 @@ export const metadata: Metadata = {
       { rel: "icon", url: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
 };
 
 export default async function RootLayout({

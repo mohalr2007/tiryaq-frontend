@@ -5420,28 +5420,30 @@ export default function DoctorDashboard() {
               {/* HEADER */}
               <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><ClipboardList className="text-blue-500" size={26} /> {t("dashboard.doctor.patients.title")}</h1>
+                  <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-white sm:text-2xl"><ClipboardList className="text-blue-500" size={24} /> {t("dashboard.doctor.patients.title")}</h1>
                   <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{dossiers.length} {t("dashboard.doctor.patients.registered")}</p>
                 </div>
-                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-                  <div className="inline-flex w-full flex-wrap items-center gap-2 rounded-[1.25rem] border border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-900 sm:w-auto sm:rounded-full">
-                    <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                      {tr("Tri", "Sort", "الترتيب")}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setDossiersSortOrder("desc")}
-                      className={getSortButtonClasses(dossiersSortOrder === "desc")}
-                    >
-                      {tr("Ajouts récents", "Recent additions", "أحدث الإضافات")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDossiersSortOrder("asc")}
-                      className={getSortButtonClasses(dossiersSortOrder === "asc")}
-                    >
-                      {tr("Ajouts anciens", "Oldest additions", "أقدم الإضافات")}
-                    </button>
+                <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                  <div className="w-full overflow-x-auto no-scrollbar sm:w-auto">
+                    <div className="inline-flex min-w-max items-center gap-2 rounded-[1.25rem] border border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-900 sm:rounded-full">
+                      <span className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        {tr("Tri", "Sort", "الترتيب")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDossiersSortOrder("desc")}
+                        className={getSortButtonClasses(dossiersSortOrder === "desc")}
+                      >
+                        {tr("Ajouts récents", "Recent additions", "أحدث الإضافات")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDossiersSortOrder("asc")}
+                        className={getSortButtonClasses(dossiersSortOrder === "asc")}
+                      >
+                        {tr("Ajouts anciens", "Oldest additions", "أقدم الإضافات")}
+                      </button>
+                    </div>
                   </div>
                   <button onClick={openEmptyDossierModal} className="flex min-h-[48px] w-full items-center justify-center gap-2 bg-blue-600 px-5 py-3 font-bold text-white rounded-2xl transition hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-none sm:w-auto">
                     <Plus size={18} /> {t("dashboard.doctor.patients.newDossier")}
@@ -5450,17 +5452,17 @@ export default function DoctorDashboard() {
               </div>
 
               {/* MAIN LAYOUT: LIST + DETAIL */}
-              <div className="grid gap-6 xl:grid-cols-3">
+              <div className="grid gap-6 xl:grid-cols-3 xl:items-start">
 
                 {/* LEFT: Liste des dossiers */}
-                <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="lg:col-span-1 min-w-0 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-slate-100 dark:border-slate-800">
                     <div className="relative">
-                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input value={dossierSearch} onChange={e => setDossierSearch(e.target.value)} placeholder={t("dashboard.doctor.patients.search")} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+                      <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input value={dossierSearch} onChange={e => setDossierSearch(e.target.value)} placeholder={t("dashboard.doctor.patients.search")} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pe-4 ps-9 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
                     </div>
                   </div>
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[600px] overflow-y-auto" onClick={() => { /* load dossiers on mount */ }}>
+                  <div className="max-h-[60vh] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800 sm:max-h-[600px]" onClick={() => { /* load dossiers on mount */ }}>
                     {filteredDossiers.length === 0 ? (
                       <div className="p-8 text-center text-slate-400 dark:text-slate-500">
                         <UserCircle size={40} className="mx-auto mb-3 opacity-40" />
@@ -5474,13 +5476,13 @@ export default function DoctorDashboard() {
                             {dossier.first_name[0]}{dossier.last_name[0]}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{dossier.first_name} {dossier.last_name}</p>
+                            <p className="break-words text-sm font-bold text-slate-900 dark:text-white">{dossier.first_name} {dossier.last_name}</p>
                             {formatPatientRegistrationNumber(dossier.patient_registration_number) ? (
-                              <p className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 font-mono tracking-[0.18em] truncate">
+                              <p className="break-all text-[10px] font-semibold text-blue-700 dark:text-blue-300 font-mono tracking-[0.12em] sm:tracking-[0.18em]">
                                 ID {formatPatientRegistrationNumber(dossier.patient_registration_number)}
                               </p>
                             ) : null}
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{dossier.phone ?? dossier.email ?? 'Aucun contact'}</p>
+                            <p className="break-all text-xs text-slate-500 dark:text-slate-400">{dossier.phone ?? dossier.email ?? 'Aucun contact'}</p>
                           </div>
                           <ChevronRight size={16} className="text-slate-300 dark:text-slate-600 shrink-0 group-hover:text-blue-500 transition" />
                         </button>
@@ -5490,16 +5492,16 @@ export default function DoctorDashboard() {
                 </div>
 
                 {/* RIGHT: Détail du dossier */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 min-w-0">
                   {!selectedDossier ? (
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-12 text-center flex flex-col items-center justify-center min-h-[400px] shadow-sm">
+                    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:min-h-[400px] sm:p-12">
                       <ClipboardList size={56} className="text-slate-200 dark:text-slate-700 mb-4" />
                       <p className="text-slate-500 dark:text-slate-400 font-medium">{t("dashboard.doctor.patients.selectDossier")}</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {/* Fiche patient */}
-                      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm">
+                      <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
                         <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex items-start gap-4">
                             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold ${selectedDossier.gender === 'Femme' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'}`}>
@@ -5509,7 +5511,7 @@ export default function DoctorDashboard() {
                               <h2 className="text-xl font-bold text-slate-900 dark:text-white">{selectedDossier.first_name} {selectedDossier.last_name}</h2>
                               <div className="flex items-center gap-3 mt-1 flex-wrap">
                                 {formatPatientRegistrationNumber(selectedDossier.patient_registration_number) ? (
-                                  <span className="text-xs font-black px-3 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 font-mono tracking-[0.22em]">
+                                  <span className="break-all rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 font-mono tracking-[0.12em] sm:tracking-[0.22em]">
                                     ID {formatPatientRegistrationNumber(selectedDossier.patient_registration_number)}
                                   </span>
                                 ) : null}

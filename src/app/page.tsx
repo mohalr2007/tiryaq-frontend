@@ -11,6 +11,7 @@ import {
   Bot,
   CalendarDays,
   CheckCircle2,
+  ClipboardList,
   FileText,
   HeartPulse,
   House,
@@ -29,6 +30,7 @@ import {
 import { Logo } from "../components/Logo";
 import { AnimatedButton } from "../components/AnimatedButton";
 import ThemeToggle from "@/components/ThemeToggle";
+import PwaInstallButton from "@/components/PwaInstallButton";
 import { getSafeAuthSession, getStableAuthUser, supabase } from "@/utils/supabase/client";
 import { useI18n } from "@/lib/i18n";
 type DashboardWindowState = {
@@ -347,6 +349,35 @@ function Navigation({
   const isPatient = accountType === "patient";
   const findDoctorsHref = user && isPatient ? `${dashboardHref}?tab=search` : "/doctors";
   const mobileAccountHref = user ? dashboardHref : "/login";
+  const doctorWorkspaceHref =
+    accountType === "doctor" && dashboardHref === "/doctor-dashboard"
+      ? "/doctor-dashboard?tab=patients"
+      : dashboardHref;
+  const doctorWorkspaceLabel =
+    dashboardHref === "/doctor-verification" ? t("common.mySpace") : t("dashboard.doctor.patients");
+  const doctorWorkspaceActive =
+    pathname.startsWith("/doctor-dashboard") ||
+    pathname.startsWith("/dashboardoctlarabi") ||
+    pathname.startsWith("/doctor-verification");
+  const roleQuickNavItem =
+    accountType === "doctor"
+      ? {
+          key: "patients",
+          href: doctorWorkspaceHref,
+          label: doctorWorkspaceLabel,
+          icon: dashboardHref === "/doctor-verification" ? UserIcon : ClipboardList,
+          isActive: doctorWorkspaceActive,
+        }
+      : {
+          key: "find",
+          href: findDoctorsHref,
+          label: t("common.findDoctors"),
+          icon: Stethoscope,
+          isActive:
+            pathname === "/doctors" ||
+            pathname.startsWith("/patient-dashboard") ||
+            pathname.startsWith("/dashboardpatientlarabi"),
+        };
   const primaryNavItems = [
     {
       key: "home",
@@ -355,16 +386,7 @@ function Navigation({
       icon: House,
       isActive: pathname === "/",
     },
-    {
-      key: "find",
-      href: findDoctorsHref,
-      label: t("common.findDoctors"),
-      icon: Stethoscope,
-      isActive:
-        pathname === "/doctors" ||
-        pathname.startsWith("/patient-dashboard") ||
-        pathname.startsWith("/dashboardpatientlarabi"),
-    },
+    roleQuickNavItem,
     {
       key: "assistant",
       href: "/ai-assistant",
@@ -393,16 +415,7 @@ function Navigation({
 
   const mobileBottomNavItems = [
     { key: "home", href: "/", label: t("common.home"), icon: House, isActive: pathname === "/" },
-    {
-      key: "find",
-      href: findDoctorsHref,
-      label: t("common.findDoctors"),
-      icon: Stethoscope,
-      isActive:
-        pathname === "/doctors" ||
-        pathname.startsWith("/patient-dashboard") ||
-        pathname.startsWith("/dashboardpatientlarabi"),
-    },
+    roleQuickNavItem,
     { key: "community", href: "/community", label: t("common.community"), icon: FileText, isActive: pathname === "/community" },
     {
       key: "account",
@@ -785,6 +798,21 @@ export default function Landing() {
         }
     : null;
   const heroFindDoctorsHref = user && accountType === "patient" ? `${dashboardHref}?tab=search` : "/doctors";
+  const doctorPatientsHref =
+    accountType === "doctor" && dashboardHref === "/doctor-dashboard"
+      ? "/doctor-dashboard?tab=patients"
+      : dashboardHref;
+  const heroSecondaryAction = heroPrimaryAction
+    ? accountType === "doctor"
+      ? {
+          href: doctorPatientsHref,
+          label: dashboardHref === "/doctor-verification" ? t("common.mySpace") : t("dashboard.doctor.patients"),
+        }
+      : {
+          href: heroFindDoctorsHref,
+          label: t("common.findDoctors"),
+        }
+    : null;
   const guestPatientSignupHref = "/signup?role=patient";
   const guestDoctorSignupHref = "/signup?role=doctor";
 
@@ -890,13 +918,14 @@ export default function Landing() {
                   )}
                   {heroPrimaryAction ? (
                     <Link
-                      href={heroFindDoctorsHref}
+                      href={heroSecondaryAction?.href ?? heroFindDoctorsHref}
                       className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-slate-200 bg-white/90 px-6 py-3.5 text-base font-semibold text-slate-700 transition touch-manipulation hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 sm:w-auto dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
                     >
-                      {t("common.findDoctors")}
+                      {heroSecondaryAction?.label ?? t("common.findDoctors")}
                     </Link>
                   ) : null}
                 </div>
+                <PwaInstallButton className="mt-3 lg:hidden" fullWidth />
                 {!user ? (
                   <div className="mt-3">
                     <Link
