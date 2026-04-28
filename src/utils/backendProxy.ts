@@ -103,7 +103,15 @@ export async function forwardToBackend(
     }
   }
 
-  return new NextResponse(upstream.body, {
+  const shouldReturnBody =
+    request.method.toUpperCase() !== "HEAD" &&
+    ![204, 205, 304].includes(upstream.status);
+
+  const responseBody = shouldReturnBody
+    ? new Uint8Array(await upstream.arrayBuffer())
+    : null;
+
+  return new NextResponse(responseBody, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers: responseHeaders,
