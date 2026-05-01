@@ -113,7 +113,6 @@ function sessionSetString(key: string, value: string) {
   }
 }
 
-<<<<<<< Updated upstream
 function sessionDel(key: string) {
   try {
     sessionStorage.removeItem(key);
@@ -121,9 +120,6 @@ function sessionDel(key: string) {
     // ignore
   }
 }
-
-=======
->>>>>>> Stashed changes
 function getHistoryErrorMessage(error: unknown) {
   if (error instanceof DOMException && error.name === "AbortError") {
     return "Le service d'historique AI met trop de temps à répondre.";
@@ -381,11 +377,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
 
         sessionIdRef.current = sessionId;
         setCurrentSessionIdState(sessionId);
-<<<<<<< Updated upstream
         sessionSetString(lsCurrentSessionKey(assistantScope, patientId), sessionId);
-=======
-        lsSetString(lsCurrentSessionKey(assistantScope, patientId), sessionId);
->>>>>>> Stashed changes
 
         const newSession: ChatSession = {
           id: sessionId,
@@ -562,11 +554,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
         sessionIdRef.current = null;
         setCurrentSessionIdState(null);
         if (patientId) {
-<<<<<<< Updated upstream
           sessionDel(lsCurrentSessionKey(assistantScope, patientId));
-=======
-          lsDel(lsCurrentSessionKey(assistantScope, patientId));
->>>>>>> Stashed changes
         }
       }
     },
@@ -578,11 +566,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
       sessionIdRef.current = id;
       setCurrentSessionIdState(id);
       if (patientId) {
-<<<<<<< Updated upstream
         sessionSetString(lsCurrentSessionKey(assistantScope, patientId), id);
-=======
-        lsSetString(lsCurrentSessionKey(assistantScope, patientId), id);
->>>>>>> Stashed changes
       }
     },
     [assistantScope, patientId],
