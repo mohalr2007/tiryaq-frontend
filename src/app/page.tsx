@@ -793,11 +793,7 @@ export default function Landing() {
     }
 
     const basePath = accountType === "doctor" ? "/doctor-dashboard" : "/patient-dashboard";
-    setDashboardWindow({
-      title,
-      src: `${basePath}?tab=${tab}&embed=1`,
-      minimized: false,
-    });
+    router.push(`${basePath}?tab=${tab}`);
   };
 
   const heroPrimaryAction = user
