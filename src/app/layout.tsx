@@ -7,11 +7,31 @@ import {
   isValidLanguage,
   type AppLanguage,
 } from "@/lib/i18n-config";
+
+function resolveMetadataBase() {
+  const configuredOrigin =
+    process.env.NEXT_PUBLIC_APP_BASE_URL?.trim() ||
+    process.env.APP_BASE_URL?.trim() ||
+    "https://tiryaq-chi.vercel.app";
+
+  try {
+    return new URL(configuredOrigin);
+  } catch {
+    return new URL("https://tiryaq-chi.vercel.app");
+  }
+}
+
+const metadataBase = resolveMetadataBase();
+
 export const metadata: Metadata = {
+  metadataBase,
   applicationName: "TIRYAQ",
   title: "TIRYAQ",
   description: "Plateforme médicale intelligente TIRYAQ",
   manifest: "/site.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
   appleWebApp: {
     capable: true,
     title: "TIRYAQ",
@@ -29,6 +49,27 @@ export const metadata: Metadata = {
       { rel: "icon", url: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
       { rel: "icon", url: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
+  },
+  openGraph: {
+    type: "website",
+    siteName: "TIRYAQ",
+    url: "/",
+    title: "TIRYAQ",
+    description: "Plateforme médicale intelligente TIRYAQ",
+    images: [
+      {
+        url: "/images/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "TIRYAQ",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TIRYAQ",
+    description: "Plateforme médicale intelligente TIRYAQ",
+    images: ["/images/logo.png"],
   },
 };
 
