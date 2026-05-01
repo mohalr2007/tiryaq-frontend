@@ -71,10 +71,11 @@ export default function Login() {
 
     try {
       persistRememberPreference(rememberMe);
+      const normalizedEmail = email.trim().toLowerCase();
 
       // Sign in user
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password
       });
 

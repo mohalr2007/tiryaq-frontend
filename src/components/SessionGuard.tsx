@@ -3,8 +3,10 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
+  clearSupabaseAuthSnapshot,
   getStableAuthUser,
   hasSupabaseAuthTokenSnapshot,
+  isMissingRefreshTokenError,
   supabase,
 } from "@/utils/supabase/client";
 
@@ -69,7 +71,8 @@ export default function SessionGuard() {
       try {
         const { user, error } = await getStableAuthUser();
 
-        if (error?.includes("Refresh Token Not Found")) {
+        if (isMissingRefreshTokenError(error)) {
+          clearSupabaseAuthSnapshot();
           await supabase.auth.signOut();
           if (!isPublicPath(pathname)) {
             router.replace("/login");

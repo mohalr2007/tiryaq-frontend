@@ -5,6 +5,13 @@ import { createClient } from '../../../utils/supabase/server'
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get('code')
+    const authType = searchParams.get('type')
+    const requestedRole = searchParams.get('role')
+    const oauthError = searchParams.get('error')
+
+    if (oauthError) {
+        return NextResponse.redirect(`${origin}/auth/auth-error`)
+    }
 
     if (code) {
         const supabase = await createClient()
@@ -63,7 +70,11 @@ export async function GET(request: Request) {
             } else {
                 // If the user doesn't have an account type yet (fresh Google sign in),
                 // redirect them to the signup page to complete their profile.
-                return NextResponse.redirect(`${origin}/signup?step=complete`)
+                const completionParams = new URLSearchParams({ step: 'complete' })
+                if (authType === 'signup' && (requestedRole === 'doctor' || requestedRole === 'patient')) {
+                    completionParams.set('role', requestedRole)
+                }
+                return NextResponse.redirect(`${origin}/signup?${completionParams.toString()}`)
             }
         }
     }

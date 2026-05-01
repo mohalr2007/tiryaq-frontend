@@ -6,9 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
+  clearSupabaseAuthSnapshot,
   getCachedSupabaseUser,
   getStableAuthUser,
   hasSupabaseAuthTokenSnapshot,
+  isMissingRefreshTokenError,
   supabase,
 } from "../../utils/supabase/client";
 import { clearExpiredVacationFlag, hasDoctorVacationExpired, syncExpiredDoctorVacations } from "../../utils/doctorAvailability";
@@ -1993,7 +1995,8 @@ export default function DoctorDashboard() {
           "auth.user.doctor",
         );
 
-        if (authError?.includes("Refresh Token Not Found")) {
+        if (isMissingRefreshTokenError(authError)) {
+          clearSupabaseAuthSnapshot();
           await supabase.auth.signOut();
           shouldKeepLoadingForRedirect = true;
           router.replace("/login");

@@ -12,9 +12,11 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
+  clearSupabaseAuthSnapshot,
   getCachedSupabaseUser,
   getStableAuthUser,
   hasSupabaseAuthTokenSnapshot,
+  isMissingRefreshTokenError,
   supabase,
 } from "../../utils/supabase/client";
 import {
@@ -929,7 +931,8 @@ export default function PatientDashboard() {
           "auth.user",
         );
 
-        if (authError?.includes("Refresh Token Not Found")) {
+        if (isMissingRefreshTokenError(authError)) {
+          clearSupabaseAuthSnapshot();
           shouldKeepLoadingForRedirect = true;
           await supabase.auth.signOut();
           router.replace("/login");

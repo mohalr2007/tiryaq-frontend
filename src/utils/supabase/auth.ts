@@ -1,4 +1,4 @@
-import { getStableAuthUser, supabase } from './client';
+import { clearSupabaseAuthSnapshot, getStableAuthUser, supabase } from './client';
 
 export type AccountType = 'patient' | 'doctor';
 
@@ -138,6 +138,7 @@ export async function logInWithGoogle() {
  */
 export async function logOutUser() {
     try {
+        clearSupabaseAuthSnapshot();
         const { error } = await supabase.auth.signOut();
         if (error) {
             console.error("Logout error:", error.message);

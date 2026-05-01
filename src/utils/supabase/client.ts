@@ -91,6 +91,15 @@ function getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
 }
 
+function getAuthTokenStorageKey() {
+    const projectRef = getSupabaseProjectRef();
+    if (!projectRef) {
+        return null;
+    }
+
+    return `sb-${projectRef}-auth-token`;
+}
+
 function wait(ms: number) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -186,18 +195,47 @@ export function hasSupabaseAuthTokenSnapshot(): boolean {
     }
 
     try {
-        const projectRef = getSupabaseProjectRef();
-        if (!projectRef) {
+        const authTokenKey = getAuthTokenStorageKey();
+        if (!authTokenKey) {
             return false;
         }
 
-        const authTokenKey = `sb-${projectRef}-auth-token`;
         return Boolean(
             window.localStorage.getItem(authTokenKey) ??
             window.sessionStorage.getItem(authTokenKey)
         );
     } catch {
         return false;
+    }
+}
+
+export function isMissingRefreshTokenError(error: string | null | undefined) {
+    if (!error) {
+        return false;
+    }
+
+    return (
+        error.includes("Refresh Token Not Found") ||
+        error.includes("Invalid Refresh Token") ||
+        error.includes("refresh_token_not_found")
+    );
+}
+
+export function clearSupabaseAuthSnapshot() {
+    if (typeof window === "undefined") {
+        return;
+    }
+
+    try {
+        const authTokenKey = getAuthTokenStorageKey();
+        if (!authTokenKey) {
+            return;
+        }
+
+        window.localStorage.removeItem(authTokenKey);
+        window.sessionStorage.removeItem(authTokenKey);
+    } catch {
+        // no-op
     }
 }
 
