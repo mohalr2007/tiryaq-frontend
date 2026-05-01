@@ -357,7 +357,14 @@ function Navigation({
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isPatient = accountType === "patient";
-  const findDoctorsHref = user && isPatient ? `${dashboardHref}?tab=search` : "/doctors";
+  const protectedGuestHref = user ? null : "/login";
+  const findDoctorsHref = user
+    ? isPatient
+      ? `${dashboardHref}?tab=search`
+      : "/doctors"
+    : "/login";
+  const assistantHref = protectedGuestHref ?? "/ai-assistant";
+  const communityHref = protectedGuestHref ?? "/community";
   const mobileAccountHref = user ? dashboardHref : "/login";
   const doctorWorkspaceHref =
     accountType === "doctor" && dashboardHref === "/doctor-dashboard"
@@ -399,14 +406,14 @@ function Navigation({
     roleQuickNavItem,
     {
       key: "assistant",
-      href: "/ai-assistant",
+      href: assistantHref,
       label: t("common.aiAssistant"),
       icon: MessageSquare,
       isActive: pathname === "/ai-assistant",
     },
     {
       key: "community",
-      href: "/community",
+      href: communityHref,
       label: t("common.community"),
       icon: FileText,
       isActive: pathname === "/community",
@@ -426,7 +433,7 @@ function Navigation({
   const mobileBottomNavItems = [
     { key: "home", href: "/", label: t("common.home"), icon: House, isActive: pathname === "/" },
     roleQuickNavItem,
-    { key: "community", href: "/community", label: t("common.community"), icon: FileText, isActive: pathname === "/community" },
+    { key: "community", href: communityHref, label: t("common.community"), icon: FileText, isActive: pathname === "/community" },
     {
       key: "account",
       href: mobileAccountHref,
@@ -808,7 +815,7 @@ export default function Landing() {
           action: () => openDashboardWindow(t("common.mySpace"), "overview"),
         }
     : null;
-  const heroFindDoctorsHref = user && accountType === "patient" ? `${dashboardHref}?tab=search` : "/doctors";
+  const heroFindDoctorsHref = user && accountType === "patient" ? `${dashboardHref}?tab=search` : "/login";
   const doctorPatientsHref =
     accountType === "doctor" && dashboardHref === "/doctor-dashboard"
       ? "/doctor-dashboard?tab=patients"
@@ -1192,8 +1199,8 @@ export default function Landing() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500 dark:text-slate-400 lg:justify-end">
-            <Link href="/ai-assistant" className="transition hover:text-slate-900 dark:hover:text-white">{t("common.aiAssistant")}</Link>
-            <Link href="/community" className="transition hover:text-slate-900 dark:hover:text-white">{t("common.community")}</Link>
+            <Link href={assistantHref} className="transition hover:text-slate-900 dark:hover:text-white">{t("common.aiAssistant")}</Link>
+            <Link href={communityHref} className="transition hover:text-slate-900 dark:hover:text-white">{t("common.community")}</Link>
           </div>
         </div>
       </footer>
