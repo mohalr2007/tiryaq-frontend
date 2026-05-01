@@ -135,25 +135,29 @@ export default function OpenGraphImage() {
           >
             <div
               style={{
+                display: "flex",
+                flexDirection: "column",
                 fontSize: 78,
                 lineHeight: 1.02,
                 fontWeight: 800,
                 letterSpacing: "-0.05em",
               }}
             >
-              Une plateforme claire
-              <br />
-              pour patients et praticiens.
+              <span>Une plateforme claire</span>
+              <span>pour patients et praticiens.</span>
             </div>
             <div
               style={{
+                display: "flex",
                 fontSize: 28,
                 lineHeight: 1.35,
                 color: "rgba(255,255,255,0.8)",
               }}
             >
-              Assistant medical, recherche de medecins, rendez-vous, communaute
-              et suivi professionnel dans une experience unifiee.
+              <span>
+                Assistant medical, recherche de medecins, rendez-vous, communaute
+                et suivi professionnel dans une experience unifiee.
+              </span>
             </div>
           </div>
 
