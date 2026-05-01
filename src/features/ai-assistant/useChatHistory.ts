@@ -97,17 +97,25 @@ function lsDel(key: string) {
   } catch {}
 }
 
-function lsGetString(key: string): string | null {
+function sessionGetString(key: string): string | null {
   try {
-    return localStorage.getItem(key);
+    return sessionStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-function lsSetString(key: string, value: string) {
+function sessionSetString(key: string, value: string) {
   try {
-    localStorage.setItem(key, value);
+    sessionStorage.setItem(key, value);
+  } catch {
+    // ignore
+  }
+}
+
+function sessionDel(key: string) {
+  try {
+    sessionStorage.removeItem(key);
   } catch {
     // ignore
   }
@@ -242,7 +250,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
     let frameId: number | null = null;
     const nextSessionId =
       patientId && typeof window !== "undefined"
-        ? lsGetString(lsCurrentSessionKey(assistantScope, patientId))
+        ? sessionGetString(lsCurrentSessionKey(assistantScope, patientId))
         : null;
 
     sessionIdRef.current = nextSessionId;
@@ -370,7 +378,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
 
         sessionIdRef.current = sessionId;
         setCurrentSessionIdState(sessionId);
-        lsSetString(lsCurrentSessionKey(assistantScope, patientId), sessionId);
+        sessionSetString(lsCurrentSessionKey(assistantScope, patientId), sessionId);
 
         const newSession: ChatSession = {
           id: sessionId,
@@ -547,7 +555,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
         sessionIdRef.current = null;
         setCurrentSessionIdState(null);
         if (patientId) {
-          lsDel(lsCurrentSessionKey(assistantScope, patientId));
+          sessionDel(lsCurrentSessionKey(assistantScope, patientId));
         }
       }
     },
@@ -559,7 +567,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
       sessionIdRef.current = id;
       setCurrentSessionIdState(id);
       if (patientId) {
-        lsSetString(lsCurrentSessionKey(assistantScope, patientId), id);
+        sessionSetString(lsCurrentSessionKey(assistantScope, patientId), id);
       }
     },
     [assistantScope, patientId],
@@ -569,7 +577,7 @@ export function useChatHistory(patientId: string | null, assistantScope: Assista
     sessionIdRef.current = null;
     setCurrentSessionIdState(null);
     if (patientId) {
-      lsDel(lsCurrentSessionKey(assistantScope, patientId));
+      sessionDel(lsCurrentSessionKey(assistantScope, patientId));
     }
   }, [assistantScope, patientId]);
 
