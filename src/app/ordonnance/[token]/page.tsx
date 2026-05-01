@@ -5,10 +5,10 @@ import PublicPrescriptionPageClient from "@/components/prescriptions/PublicPresc
 import type { VisitPrescription, VisitPrescriptionItem } from "@/components/prescriptions/types";
 import { sortPrescriptionItems } from "@/components/prescriptions/types";
 import { buildPrescriptionPublicUrl } from "@/utils/prescriptions/publicUrl";
-import { createAdminClient } from "@/utils/supabase/admin";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+const PUBLIC_PRESCRIPTION_FETCH_TIMEOUT_MS = 15_000;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -68,36 +68,47 @@ export default async function PublicPrescriptionPage({ params, searchParams }: P
   const { token } = await params;
   const resolvedSearchParams = await searchParams;
   const requestHeaders = await headers();
-  const admin = createAdminClient();
-
-  const visitPrescriptionResult = await admin
-    .from("visit_prescriptions")
-    .select("id, visit_id, dossier_id, doctor_id, patient_id, prescription_number, public_token, prescription_date, patient_display_name, doctor_display_name, doctor_specialty, doctor_address, doctor_phone, signature_label, notes, created_at, updated_at, dossier:medical_dossiers!dossier_id(patient_registration_number), items:visit_prescription_items(id, prescription_id, line_number, medication_name, dosage, instructions, duration, created_at, updated_at)")
-    .eq("public_token", token)
-    .maybeSingle();
-
-  const standalonePrescriptionResult = !visitPrescriptionResult.data
-    ? await admin
-        .from("standalone_prescriptions")
-        .select("id, dossier_id, doctor_id, patient_id, patient_registration_number, prescription_number, public_token, prescription_date, patient_display_name, doctor_display_name, doctor_specialty, doctor_address, doctor_phone, signature_label, notes, created_at, updated_at, items:standalone_prescription_items(id, prescription_id, line_number, medication_name, dosage, instructions, duration, created_at, updated_at)")
-        .eq("public_token", token)
-        .maybeSingle()
-    : { data: null, error: null };
-
-  const data = visitPrescriptionResult.data ?? standalonePrescriptionResult.data;
-  const error = visitPrescriptionResult.error ?? standalonePrescriptionResult.error;
-
-  if (error || !data) {
-    notFound();
-  }
-
-  const prescription = normalizePrescriptionRecord(data as unknown as VisitPrescription);
   const forwardedProto = requestHeaders.get("x-forwarded-proto");
   const forwardedHost = requestHeaders.get("x-forwarded-host");
   const host = forwardedHost ?? requestHeaders.get("host");
   const runtimeOrigin = host
     ? `${forwardedProto ?? (host.startsWith("localhost") || host.startsWith("127.") || host.startsWith("10.") || host.startsWith("192.168.") || host.startsWith("172.") ? "http" : "https")}://${host}`
     : null;
+  const backendOrigin = process.env.BACKEND_ORIGIN?.trim() || process.env.NEXT_PUBLIC_BACKEND_ORIGIN?.trim() || "";
+  const primaryLookupUrl = backendOrigin
+    ? `${backendOrigin.replace(/\/+$/, "")}/api/public-prescriptions/${token}`
+    : runtimeOrigin
+      ? `${runtimeOrigin}/api/public-prescriptions/${token}`
+      : null;
+
+  if (!primaryLookupUrl) {
+    notFound();
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), PUBLIC_PRESCRIPTION_FETCH_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(primaryLookupUrl, {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+  } catch {
+    notFound();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    notFound();
+  }
+
+  const data = await response.json();
+  const prescription = normalizePrescriptionRecord(data as VisitPrescription);
   const publicUrl = buildPrescriptionPublicUrl(prescription.public_token, {
     configuredOrigin: process.env.APP_BASE_URL?.trim() || process.env.NEXT_PUBLIC_APP_BASE_URL?.trim(),
     runtimeOrigin,
