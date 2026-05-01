@@ -518,13 +518,16 @@ function Navigation({
             )}
           </div>
 
-          <button
-            onClick={() => setMobileOpen((current) => !current)}
-            className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-slate-700 transition touch-manipulation hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden"
-            aria-label="Ouvrir le menu"
-          >
-            <Menu size={20} />
-          </button>
+          <div className="flex items-center gap-2 lg:hidden">
+            <PwaInstallButton compact />
+            <button
+              onClick={() => setMobileOpen((current) => !current)}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-slate-700 transition touch-manipulation hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800"
+              aria-label="Ouvrir le menu"
+            >
+              <Menu size={20} />
+            </button>
+          </div>
         </div>
 
         <AnimatePresence>
@@ -565,6 +568,7 @@ function Navigation({
                 <div className="mt-2">
                   <ThemeToggle variant="inline" className="justify-between" />
                 </div>
+                <PwaInstallButton className="mt-2" fullWidth />
                 <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
                   {user ? (
                     <div className="flex flex-col gap-3">

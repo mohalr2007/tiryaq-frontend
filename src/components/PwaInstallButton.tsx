@@ -12,6 +12,7 @@ type BeforeInstallPromptEvent = Event & {
 type PwaInstallButtonProps = {
   className?: string;
   fullWidth?: boolean;
+  compact?: boolean;
 };
 
 function cx(...values: Array<string | false | null | undefined>) {
@@ -48,6 +49,7 @@ function isStandaloneMode() {
 export default function PwaInstallButton({
   className,
   fullWidth = false,
+  compact = false,
 }: PwaInstallButtonProps) {
   const { language } = useI18n();
   const tr = (fr: string, en: string, ar: string) =>
@@ -151,13 +153,16 @@ export default function PwaInstallButton({
         onClick={() => void handleInstall()}
         className={cx(
           "inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/92 px-5 py-3 text-sm font-semibold text-slate-700 transition touch-manipulation hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/82 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white",
+          compact && "min-h-[42px] px-3 py-2.5 text-xs",
           fullWidth && "w-full",
         )}
       >
         {deferredPrompt ? <Download className="size-4" /> : <Smartphone className="size-4" />}
         {isInstalling
           ? tr("Préparation...", "Preparing...", "جارٍ التحضير...")
-          : tr("Installer l'app", "Install app", "تثبيت التطبيق")}
+          : compact
+            ? tr("Installer", "Install", "تثبيت")
+            : tr("Installer l'app", "Install app", "تثبيت التطبيق")}
       </button>
       {showIosHint ? (
         <div className="mt-2 rounded-2xl border border-blue-100 bg-blue-50/90 px-4 py-3 text-xs leading-6 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/35 dark:text-blue-200">
