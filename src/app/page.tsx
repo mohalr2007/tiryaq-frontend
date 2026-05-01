@@ -659,6 +659,8 @@ export default function Landing() {
   const [authResolved, setAuthResolved] = useState(false);
   const [authPending, setAuthPending] = useState(true);
   const [dashboardWindow, setDashboardWindow] = useState<DashboardWindowState | null>(null);
+  const assistantHref = user ? "/ai-assistant" : "/login";
+  const communityHref = user ? "/community" : "/login";
 
   useEffect(() => {
     document.title = `TIRYAQ - ${t("home.hero.badge")}`;
