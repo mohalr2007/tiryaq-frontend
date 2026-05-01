@@ -2214,7 +2214,7 @@ export default function DoctorDashboard() {
                 post_id: postId,
                 viewer_id: user.id,
               })),
-              { onConflict: "post_id,viewer_id" }
+              { onConflict: "post_id,viewer_id", ignoreDuplicates: true }
             );
 
           if (viewsUpsertError && !isMissingCommunityViewsTable(viewsUpsertError)) {
