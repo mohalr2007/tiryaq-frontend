@@ -3419,7 +3419,7 @@ export default function DoctorDashboard() {
              </p>
           </div>
           <button onClick={() => window.location.reload()} className="mt-6 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition">
-             Rafraîchir la page
+             {t("dashboard.doctor.settings.refreshPage")}
           </button>
         </div>
       </div>
@@ -4553,12 +4553,12 @@ export default function DoctorDashboard() {
                    disabled={isManualRefreshing}
                    className="inline-flex items-center gap-2 self-start rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-80 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                  >
-                   <RefreshCw size={16} className={isManualRefreshing ? "animate-spin" : ""} /> Rafraîchir
+                   <RefreshCw size={16} className={isManualRefreshing ? "animate-spin" : ""} /> {t("admin.refresh")}
                  </button>
                </div>
                <div className="space-y-6 max-w-4xl mx-auto">
                  {allArticles.length === 0 ? (
-                    <div className="py-12 text-center text-gray-400">Aucune publication sur la plateforme pour le moment.</div>
+                    <div className="py-12 text-center text-gray-400">{t("dashboard.doctor.community.empty")}</div>
                  ) : (
                    allArticles.map((article) => {
                       const likes = likesByPost[article.id] || { count: 0, likedByMe: false };
@@ -4576,26 +4576,26 @@ export default function DoctorDashboard() {
                            className="flex min-w-0 flex-1 items-center gap-3 text-left transition hover:opacity-90"
                            title={tr("Ouvrir la fiche du docteur", "Open doctor profile", "فتح بطاقة الطبيب")}
                          >
-                           {article.author?.avatar_url ? (
-                             <img
-                               src={article.author.avatar_url}
-                               alt={article.author.full_name || "Docteur"}
-                               className="w-11 h-11 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-                             />
-                           ) : (
+                            {article.author?.avatar_url ? (
+                              <img
+                                src={article.author.avatar_url}
+                                alt={article.author.full_name || tr("Docteur", "Doctor", "طبيب")}
+                                className="w-11 h-11 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                              />
+                            ) : (
                              <div className="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center text-sm font-bold text-blue-700 dark:text-blue-300 uppercase">
                                {(article.author?.full_name?.substring(0, 2) ?? "DR").toUpperCase()}
                              </div>
-                           )}
-                           <div className="min-w-0">
-                             <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">Dr. {article.author?.full_name ?? "Médecin"}</p>
-                             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{article.author?.specialty ?? "Généraliste"} · {new Date(article.created_at).toLocaleDateString("fr-FR")}</p>
-                           </div>
-                         </button>
-                         <span className={`ml-auto rounded-full px-3 py-1 text-xs font-semibold ${article.category === "maladie" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
-                           {article.category === "maladie" ? "Maladie" : "Conseil"}
-                         </span>
-                       </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">Dr. {article.author?.full_name ?? tr("Médecin", "Doctor", "طبيب")}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{article.author?.specialty ?? tr("Généraliste", "General practitioner", "طبيب عام")} · {new Date(article.created_at).toLocaleDateString(locale)}</p>
+                            </div>
+                          </button>
+                          <span className={`ml-auto rounded-full px-3 py-1 text-xs font-semibold ${article.category === "maladie" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                            {article.category === "maladie" ? tr("Maladie", "Disease", "مرض") : tr("Conseil", "Advice", "نصيحة")}
+                          </span>
+                        </div>
                        
                        <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2">{article.title}</h3>
                        <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{article.content}</p>
@@ -4682,17 +4682,17 @@ export default function DoctorDashboard() {
                    disabled={isManualRefreshing}
                    className="inline-flex items-center gap-2 self-start rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-80 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                  >
-                   <RefreshCw size={16} className={isManualRefreshing ? "animate-spin" : ""} /> Rafraîchir
+                   <RefreshCw size={16} className={isManualRefreshing ? "animate-spin" : ""} /> {t("admin.refresh")}
                  </button>
                </div>
                <div className="max-w-4xl mx-auto flex flex-col gap-10">
                  {/* Formulaire */}
                  <div className="w-full">
                    <div className="bg-white dark:bg-slate-950 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 sticky top-8">
-                     <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-4">Nouvel Article</h3>
+                     <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-4">{t("dashboard.doctor.pub.newTitle")}</h3>
                      <form onSubmit={handlePublishArticle} className="grid md:grid-cols-2 gap-5">
                        <div>
-                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Type de publication</label>
+                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">{t("dashboard.doctor.pub.typeLabel")}</label>
                          <select
                            value={newArticle.category}
                            onChange={(e) =>
@@ -4700,29 +4700,29 @@ export default function DoctorDashboard() {
                                ...current,
                                category: e.target.value as "conseil" | "maladie",
                              }))
-                           }
-                           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition"
-                         >
-                           <option value="conseil">Conseil médical</option>
-                           <option value="maladie">Information maladie</option>
-                         </select>
-                       </div>
-                       <div>
-                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Titre de l&apos;article</label>
-                         <input required type="text" value={newArticle.title} onChange={e => setNewArticle({...newArticle, title: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Ex: Les bienfaits de l'hydratation"/>
-                       </div>
-                       <div>
-                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Contenu médical</label>
-                         <textarea required value={newArticle.content} onChange={e => setNewArticle({...newArticle, content: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition h-32 resize-none" placeholder="Rédigez vos conseils ici..."></textarea>
-                       </div>
-                       <div>
-                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">Photos (max 10)</label>
-                         <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
-                           <Images size={16} />
-                           Ajouter des images ({pendingPublicationImages.length}/10)
-                           <input
-                             type="file"
-                             accept="image/*"
+                            }
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition"
+                          >
+                            <option value="conseil">{t("dashboard.doctor.pub.categoryConseilOption")}</option>
+                            <option value="maladie">{t("dashboard.doctor.pub.categoryMaladieOption")}</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">{t("dashboard.doctor.pub.articleTitleLabel")}</label>
+                          <input required type="text" value={newArticle.title} onChange={e => setNewArticle({...newArticle, title: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder={t("dashboard.doctor.pub.articleTitlePlaceholder")}/>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">{tr("Contenu médical", "Medical content", "المحتوى الطبي")}</label>
+                          <textarea required value={newArticle.content} onChange={e => setNewArticle({...newArticle, content: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition h-32 resize-none" placeholder={t("dashboard.doctor.pub.contentPlaceholder")}></textarea>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">{t("dashboard.doctor.pub.photosLabel")}</label>
+                          <label className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                            <Images size={16} />
+                            {t("dashboard.doctor.pub.addImages")} ({pendingPublicationImages.length}/10)
+                            <input
+                              type="file"
+                              accept="image/*"
                              multiple
                              className="hidden"
                              onChange={(event) => {
@@ -4731,39 +4731,40 @@ export default function DoctorDashboard() {
                              }}
                            />
                          </label>
-                         {pendingPublicationImages.length > 0 ? (
-                           <div className="grid grid-cols-3 gap-2 mt-3">
-                             {pendingPublicationImages.map((image, index) => (
-                               <div key={`${image.file.name}-${index}`} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                                 <img src={image.previewUrl} alt={`Prévisualisation ${index + 1}`} className="w-full h-20 object-cover" />
-                                 <button
-                                   type="button"
-                                   onClick={() => removePendingPublicationImage(index)}
+                          {pendingPublicationImages.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-2 mt-3">
+                              {pendingPublicationImages.map((image, index) => (
+                                <div key={`${image.file.name}-${index}`} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                                  <img src={image.previewUrl} alt={`${tr("Prévisualisation", "Preview", "معاينة")} ${index + 1}`} className="w-full h-20 object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => removePendingPublicationImage(index)}
                                    className="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition"
                                  >
                                    <X size={14} />
                                  </button>
                                </div>
-                             ))}
-                           </div>
-                         ) : null}
-                       </div>
-                        <button type="submit" className="md:col-span-2 bg-slate-900 dark:bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-slate-800 dark:hover:bg-blue-500 transition shadow-md">Publier l&apos;article</button>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                        <button type="submit" className="md:col-span-2 bg-slate-900 dark:bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-slate-800 dark:hover:bg-blue-500 transition shadow-md">{t("dashboard.doctor.pub.publishArticle")}</button>
                      </form>
                    </div>
                  </div>
                  {/* Liste articles */}
-                 <div className="w-full flex flex-col gap-4">\n                    <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2">Historique des publications</h3>
-                   {articles.length === 0 ? <p className="text-slate-400 italic">Vous n&apos;avez publié aucun article.</p> : null}
+                 <div className="w-full flex flex-col gap-4">
+                   <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2">{t("dashboard.doctor.pub.historyTitle")}</h3>
+                   {articles.length === 0 ? <p className="text-slate-400 italic">{t("dashboard.doctor.pub.emptyHistory")}</p> : null}
                    {articles.map(art => (
-                     <div key={art.id} className="bg-white dark:bg-slate-950 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            art.category === "maladie"
-                              ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
-                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                          }`}>
-                            {art.category === "maladie" ? "Maladie" : "Conseil"}
+                      <div key={art.id} className="bg-white dark:bg-slate-950 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+                         <div className="flex items-start justify-between gap-3">
+                           <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                             art.category === "maladie"
+                               ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
+                               : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                           }`}>
+                            {art.category === "maladie" ? tr("Maladie", "Disease", "مرض") : tr("Conseil", "Advice", "نصيحة")}
                           </span>
                           <button
                             type="button"
@@ -4772,16 +4773,16 @@ export default function DoctorDashboard() {
                             className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-wait disabled:opacity-60 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50"
                           >
                             <Trash2 size={14} />
-                            {deletingPublicationId === art.id ? "Suppression..." : "Supprimer"}
+                            {deletingPublicationId === art.id ? t("dashboard.doctor.pub.deleting") : t("dashboard.doctor.pub.delete")}
                           </button>
                         </div>
                         <h4 className="font-bold text-xl text-slate-900 dark:text-slate-100">{art.title}</h4>
                         {art.is_hidden ? (
                           <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                            Publication masquée par modération{art.hidden_reason ? ` · ${art.hidden_reason}` : ""}.
+                            {t("dashboard.doctor.pub.hidden")}{art.hidden_reason ? ` · ${art.hidden_reason}` : ""}.
                           </p>
                         ) : null}
-                        <p className="text-xs text-slate-400 font-medium">Publié le {new Date(art.created_at).toLocaleDateString('fr-FR')}</p>
+                        <p className="text-xs text-slate-400 font-medium">{t("dashboard.doctor.pub.publishedOn")} {new Date(art.created_at).toLocaleDateString(locale)}</p>
                         <p className="text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">{art.content}</p>
                         <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50/90 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                           <div className="mb-3 flex items-center justify-between gap-3">

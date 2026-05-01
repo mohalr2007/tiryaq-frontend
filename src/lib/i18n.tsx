@@ -12,16 +12,22 @@ import {
 } from "@/lib/i18n-config";
 
 type TranslationParams = Record<string, string | number>;
+type TranslateFn = (
+  key: string,
+  params?: TranslationParams,
+  fallbackText?: string
+) => string;
 
 type I18nContextValue = {
   language: AppLanguage;
   setLanguage: (language: AppLanguage) => void;
-  t: (key: string, params?: TranslationParams) => string;
+  t: TranslateFn;
   isRtl: boolean;
 };
 
 const LANGUAGE_COOKIE_KEY = "lang";
 const LANGUAGE_STORAGE_KEY = "lang";
+const missingTranslationWarnings = new Set<string>();
 
 const translations: Record<AppLanguage, Record<string, string>> = {
   fr: {
@@ -273,18 +279,32 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     "dashboard.doctor.patients.newDossier": "Nouveau dossier",
     "dashboard.doctor.patients.registered": "patients enregistrés",
     "dashboard.doctor.patients.empty": "Aucun dossier patient.",
+    "dashboard.doctor.patients.noDossier": "Aucun dossier patient disponible.",
+    "dashboard.doctor.patients.clickToCreate": "Cliquez sur \"Nouveau dossier\" pour créer le premier.",
     "dashboard.doctor.patients.addVisit": "Ajouter une visite",
     "dashboard.doctor.patients.noVisits": "Aucune visite enregistrée.",
     "dashboard.doctor.pub.newTitle": "Nouvelle publication",
+    "dashboard.doctor.pub.typeLabel": "Type de publication",
     "dashboard.doctor.pub.titleLabel": "Titre",
     "dashboard.doctor.pub.contentLabel": "Contenu",
     "dashboard.doctor.pub.categoryConseil": "Conseil santé",
     "dashboard.doctor.pub.categoryMaladie": "Maladie / Info médicale",
+    "dashboard.doctor.pub.categoryConseilOption": "Conseil médical",
+    "dashboard.doctor.pub.categoryMaladieOption": "Information maladie",
+    "dashboard.doctor.pub.articleTitleLabel": "Titre de l'article",
+    "dashboard.doctor.pub.articleTitlePlaceholder": "Ex: Les bienfaits de l'hydratation",
+    "dashboard.doctor.pub.contentPlaceholder": "Rédigez vos conseils ici...",
+    "dashboard.doctor.pub.photosLabel": "Photos (max 10)",
     "dashboard.doctor.pub.publish": "Publier",
+    "dashboard.doctor.pub.publishArticle": "Publier l'article",
     "dashboard.doctor.pub.addImages": "Ajouter des images",
     "dashboard.doctor.pub.empty": "Aucune publication.",
+    "dashboard.doctor.pub.emptyHistory": "Vous n'avez publié aucun article.",
+    "dashboard.doctor.pub.historyTitle": "Historique des publications",
     "dashboard.doctor.pub.hidden": "Masquée par modération",
     "dashboard.doctor.pub.delete": "Supprimer",
+    "dashboard.doctor.pub.deleting": "Suppression...",
+    "dashboard.doctor.pub.publishedOn": "Publié le",
     "dashboard.doctor.pub.views": "vues",
     "dashboard.doctor.pub.reportSend": "Envoyer le signalement",
     "dashboard.doctor.settings.title": "Paramètres du cabinet",
@@ -311,6 +331,7 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     "dashboard.doctor.settings.uploadAvatar": "Changer la photo",
     "dashboard.doctor.community.writeComment": "Écrire un commentaire...",
     "dashboard.doctor.community.send": "Envoyer",
+    "dashboard.doctor.community.empty": "Aucune publication sur la plateforme pour le moment.",
     "ai.assistant.new": "Nouveau",
     "ai.assistant.bookNow": "Réserver",
     "ai.assistant.viewDetails": "Détails",
@@ -611,18 +632,32 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     "dashboard.doctor.patients.newDossier": "New record",
     "dashboard.doctor.patients.registered": "registered patients",
     "dashboard.doctor.patients.empty": "No patient records.",
+    "dashboard.doctor.patients.noDossier": "No patient record available.",
+    "dashboard.doctor.patients.clickToCreate": "Click \"New record\" to create the first one.",
     "dashboard.doctor.patients.addVisit": "Add a visit",
     "dashboard.doctor.patients.noVisits": "No visits recorded.",
     "dashboard.doctor.pub.newTitle": "New publication",
+    "dashboard.doctor.pub.typeLabel": "Publication type",
     "dashboard.doctor.pub.titleLabel": "Title",
     "dashboard.doctor.pub.contentLabel": "Content",
     "dashboard.doctor.pub.categoryConseil": "Health tip",
     "dashboard.doctor.pub.categoryMaladie": "Disease / Medical info",
+    "dashboard.doctor.pub.categoryConseilOption": "Medical advice",
+    "dashboard.doctor.pub.categoryMaladieOption": "Disease information",
+    "dashboard.doctor.pub.articleTitleLabel": "Article title",
+    "dashboard.doctor.pub.articleTitlePlaceholder": "Ex: The benefits of hydration",
+    "dashboard.doctor.pub.contentPlaceholder": "Write your medical advice here...",
+    "dashboard.doctor.pub.photosLabel": "Photos (max 10)",
     "dashboard.doctor.pub.publish": "Publish",
+    "dashboard.doctor.pub.publishArticle": "Publish article",
     "dashboard.doctor.pub.addImages": "Add images",
     "dashboard.doctor.pub.empty": "No publications.",
+    "dashboard.doctor.pub.emptyHistory": "You have not published any articles yet.",
+    "dashboard.doctor.pub.historyTitle": "Publication history",
     "dashboard.doctor.pub.hidden": "Hidden by moderation",
     "dashboard.doctor.pub.delete": "Delete",
+    "dashboard.doctor.pub.deleting": "Deleting...",
+    "dashboard.doctor.pub.publishedOn": "Published on",
     "dashboard.doctor.pub.views": "views",
     "dashboard.doctor.pub.reportSend": "Send report",
     "dashboard.doctor.settings.title": "Practice settings",
@@ -649,6 +684,7 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     "dashboard.doctor.settings.uploadAvatar": "Change photo",
     "dashboard.doctor.community.writeComment": "Write a comment...",
     "dashboard.doctor.community.send": "Send",
+    "dashboard.doctor.community.empty": "No publications on the platform right now.",
     "ai.assistant.new": "New",
     "ai.assistant.bookNow": "Book Now",
     "ai.assistant.viewDetails": "Details",
@@ -949,18 +985,32 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     "dashboard.doctor.patients.newDossier": "سجل جديد",
     "dashboard.doctor.patients.registered": "مرضى مسجلون",
     "dashboard.doctor.patients.empty": "لا توجد سجلات مرضى.",
+    "dashboard.doctor.patients.noDossier": "لا يوجد أي ملف طبي حالياً.",
+    "dashboard.doctor.patients.clickToCreate": "اضغط على \"سجل جديد\" لإنشاء أول ملف.",
     "dashboard.doctor.patients.addVisit": "إضافة زيارة",
     "dashboard.doctor.patients.noVisits": "لا توجد زيارات مسجلة.",
     "dashboard.doctor.pub.newTitle": "منشور جديد",
+    "dashboard.doctor.pub.typeLabel": "نوع المنشور",
     "dashboard.doctor.pub.titleLabel": "العنوان",
     "dashboard.doctor.pub.contentLabel": "المحتوى",
     "dashboard.doctor.pub.categoryConseil": "نصيحة صحية",
     "dashboard.doctor.pub.categoryMaladie": "مرض / معلومة طبية",
+    "dashboard.doctor.pub.categoryConseilOption": "استشارة طبية",
+    "dashboard.doctor.pub.categoryMaladieOption": "معلومة عن المرض",
+    "dashboard.doctor.pub.articleTitleLabel": "عنوان المقال",
+    "dashboard.doctor.pub.articleTitlePlaceholder": "مثال: فوائد شرب الماء",
+    "dashboard.doctor.pub.contentPlaceholder": "اكتب محتواك الطبي هنا...",
+    "dashboard.doctor.pub.photosLabel": "الصور (الحد الأقصى 10)",
     "dashboard.doctor.pub.publish": "نشر",
+    "dashboard.doctor.pub.publishArticle": "نشر المقال",
     "dashboard.doctor.pub.addImages": "إضافة صور",
     "dashboard.doctor.pub.empty": "لا توجد منشورات.",
+    "dashboard.doctor.pub.emptyHistory": "لم تقم بنشر أي مقال بعد.",
+    "dashboard.doctor.pub.historyTitle": "سجل المنشورات",
     "dashboard.doctor.pub.hidden": "مخفي بواسطة الإشراف",
     "dashboard.doctor.pub.delete": "حذف",
+    "dashboard.doctor.pub.deleting": "جارٍ الحذف...",
+    "dashboard.doctor.pub.publishedOn": "نُشر في",
     "dashboard.doctor.pub.views": "مشاهدة",
     "dashboard.doctor.pub.reportSend": "إرسال البلاغ",
     "dashboard.doctor.settings.title": "إعدادات العيادة",
@@ -987,6 +1037,7 @@ const translations: Record<AppLanguage, Record<string, string>> = {
     "dashboard.doctor.settings.uploadAvatar": "تغيير الصورة",
     "dashboard.doctor.community.writeComment": "اكتب تعليقاً...",
     "dashboard.doctor.community.send": "إرسال",
+    "dashboard.doctor.community.empty": "لا توجد منشورات على المنصة حالياً.",
     "ai.assistant.bookNow": "احجز الآن",
     "ai.assistant.viewDetails": "التفاصيل",
     "ai.assistant.details": "التفاصيل",
@@ -1052,6 +1103,39 @@ function interpolate(template: string, params?: TranslationParams) {
   );
 }
 
+function humanizeTranslationKey(key: string) {
+  const leaf = key.split(".").pop() ?? key;
+  return leaf
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveTranslation(
+  language: AppLanguage,
+  key: string,
+  fallbackText?: string
+) {
+  const dictionary = translations[language];
+  const fallbackDictionary = translations.fr;
+  const resolved = dictionary[key] ?? fallbackDictionary[key];
+
+  if (resolved) {
+    return resolved;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    const warningKey = `${language}:${key}`;
+    if (!missingTranslationWarnings.has(warningKey)) {
+      missingTranslationWarnings.add(warningKey);
+      console.warn(`[i18n] Missing translation key "${key}" for language "${language}".`);
+    }
+  }
+
+  return fallbackText?.trim() || humanizeTranslationKey(key);
+}
+
 export function I18nProvider({
   initialLanguage,
   children,
@@ -1078,10 +1162,8 @@ export function I18nProvider({
   const value = useMemo<I18nContextValue>(() => ({
     language,
     setLanguage: setLanguageState,
-    t: (key, params) => {
-      const dictionary = translations[language];
-      const fallback = translations.fr;
-      return interpolate(dictionary[key] ?? fallback[key] ?? key, params);
+    t: (key, params, fallbackText) => {
+      return interpolate(resolveTranslation(language, key, fallbackText), params);
     },
     isRtl: language === "ar",
   }), [language]);

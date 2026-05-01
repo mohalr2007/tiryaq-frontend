@@ -854,6 +854,7 @@ export function useLunaChat(): UseLunaChatReturn {
               body: JSON.stringify({
                 userRole: assistantScope,
                 userPrompt: trimmedText,
+                uiLanguage: language,
                 attachments: attachmentPayload,
                 history: historyForVisionApi,
               }),
@@ -926,6 +927,7 @@ export function useLunaChat(): UseLunaChatReturn {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               messages: historyForApi,
+              uiLanguage: language,
               doctorsSummary: assistantScope === "patient" && promptDoctors.length > 0
                 ? buildDoctorsSummary(promptDoctors)
                 : undefined,

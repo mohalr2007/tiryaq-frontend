@@ -483,7 +483,8 @@ function DoctorCard({
 // ── Main Layout ─────────────────────────────────────────────
 export default function AiAssistantView({ 
   embedded = false, 
-  onToggleNav
+  onToggleNav,
+  isNavVisible = false,
 }: { 
   embedded?: boolean; 
   onToggleNav?: () => void;
@@ -1122,7 +1123,7 @@ export default function AiAssistantView({
             {(onToggleNav || !embedded) && (
               <button 
                 onClick={() => onToggleNav ? onToggleNav() : setMobileNavOpen(true)} 
-                className={`${embedded ? 'flex' : 'md:hidden'} min-h-[44px] min-w-[44px] items-center justify-center text-slate-600 dark:text-blue-400 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700`}
+                className={`${embedded ? (isNavVisible ? 'flex md:hidden' : 'flex') : 'flex md:hidden'} min-h-[44px] min-w-[44px] items-center justify-center text-slate-600 dark:text-blue-400 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95 border border-transparent hover:border-slate-200 dark:hover:border-slate-700`}
                 title={tr(language, "Menu", "Menu", "القائمة")}
               >
                 <Menu size={20}/>
